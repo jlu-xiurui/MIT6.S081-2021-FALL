@@ -1,0 +1,24 @@
+433 }
+434 
+435 // lab3 pgtbl : print vm
+436 static void vmprint_helper(pagetable_t pagetable,int level){
+437     if(level > 3)
+438         return;
+439     for(int i = 0; i < 512; i++){
+440         pte_t pte = pagetable[i];
+441         if(pte & PTE_V){
+442             uint64 child = PTE2PA(pte);
+443             for(int j = 0; j < level; j++)
+444                 printf(" ..");
+445             printf("%d: pte %p pa %p\n",i,pte,child);
+446             vmprint_helper((pagetable_t)child,level+1);
+447         }
+448     }
+449 }
+450 void vmprint(pagetable_t pagetable){
+451     printf("page table %p\n",pagetable);
+452     vmprint_helper(pagetable,1);
+453     return;
+454 }
+455 
+
