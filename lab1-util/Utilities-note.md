@@ -66,7 +66,7 @@
 
 本函数的功能是，将一个字节的数据在父子进程之间传输，当父进程或子进程收到该字节时，打印其PID和一串消息。考察了对于进程通信方式（IPC）—— 管道的理解及使用。事实上 `pipe` 函数的作用仅为构造一对双工相连的文件描述符，在调用 `fork` 后，这一对文件描述符在父子进程中被共享，因此即可通过这对文件描述符实现父子进程的进程间通信，其工作示意图如下（摘自APUE）：
 
-![figure1](C:\ubuntu-share\figure1.png)
+![figure1](https://github.com/jlu-xiurui/MIT6.S081-2021-FALL/blob/master/lab1-util/figure1.png)
 
 具体实现方式比较简单，在`pipe` 和 `fork`被调用后，在父子进程中分别关闭不同的文件描述符后，父子进程即可通过这对文件描述符进行通信，父子进程分别调用 `read` 和 `write` 传递信息即可。
 
@@ -138,7 +138,7 @@ loop:
         send n to right neighbor
 ```
 
-![figure2](C:\ubuntu-share\figure2.png)
+![figure2](https://github.com/jlu-xiurui/MIT6.S081-2021-FALL/blob/master/lab1-util/figure2.png)
 
 在本程序中，主进程和其亲子进程通过管道 `pl` 进行通信，除主进程外的所有进程都通过 `pl` 与其父进程通信（接受数据），通过 `pr` 与其子进程通信（发送数据） 。对于两个管道，`pl[0]`和`pr[0]`均为管道的输入端，`pl[1]`和`pr[1]`均为管道的输出端。显而易见的是，对于除主进程以外的进程而言，其管道 `pr` 与其子进程的管道 `pl` 为同一对象。
 
