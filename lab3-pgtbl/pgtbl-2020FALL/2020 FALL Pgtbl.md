@@ -37,7 +37,7 @@
 
 在xv6中，进程的生成和释放分别通过 `allocproc` 和 `freeproc` 两个函数实现。在创建内核页表副本之前，我们需要对xv6内核地址布局进行理解，xv6内核地址分布如下：
 
-![figure1](C:\ubuntu-share\figure1.png)
+![figure1](https://github.com/jlu-xiurui/MIT6.S081-2021-FALL/blob/master/lab3-pgtbl/pgtbl-2020FALL/figure1.png)
 
 在这里，除了为用户提供的内核栈  `Kstack` 外，其余的页均具有固定的虚拟地址和物理地址，且已经被分配在物理内存中。因此，在本部分中，内核栈 `Kstack` 的物理内存分配和释放为关键之处。在这里，内核页表副本的初始化与内核页表 `kernel_pagetable` 的初始化函数 `kvminit` 所作的工作类似，在分配了根目录表 `kpagetable` 后，通过 `mappages` 函数将内核地址空间中除 `Kstack` 的部分各自进行映射。值得注意的是，由于实验下一部分的需要，在这里不能对 `CLINT` 进行映射（实际上实验指导书中也没有进行这个页面的映射）：
 
