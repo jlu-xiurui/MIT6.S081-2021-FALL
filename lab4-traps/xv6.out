@@ -1,0 +1,43 @@
+
+xv6 kernel is booting
+
+hart 1 starting
+hart 2 starting
+init: starting sh
+$ alarmtest
+test0 start
+sigalarm
+................................alarm!
+sigreturn
+sigalarm
+test0 passed
+test1 start
+sigalarm
+..alarm!
+sigreturn
+..alarm!
+sigreturn
+..alarm!
+sigreturn
+.alarm!
+sigreturn
+.alarm!
+sigreturn
+..alarm!
+sigreturn
+...alarm!
+sigreturn
+..alarm!
+sigreturn
+.alarm!
+sigreturn
+..alarm!
+sigreturn
+test1 passed
+test2 start
+sigalarm
+...................................................................alarm!
+sigalarm
+sigreturn
+test2 passed
+$ qemu-system-riscv64: terminating on signal 15 from pid 12491 (make)
