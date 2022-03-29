@@ -205,49 +205,33 @@ kalloc(void)
     80000176:	b7d5                	j	8000015a <kalloc+0x42>
 
 0000000080000178 <getfreemem>:
-uint64
-getfreemem(void){
     80000178:	1101                	addi	sp,sp,-32
     8000017a:	ec06                	sd	ra,24(sp)
     8000017c:	e822                	sd	s0,16(sp)
     8000017e:	e426                	sd	s1,8(sp)
     80000180:	1000                	addi	s0,sp,32
-	struct run *r;
-	uint64 ret = 0;
-	acquire(&kmem.lock);
     80000182:	00009497          	auipc	s1,0x9
     80000186:	eae48493          	addi	s1,s1,-338 # 80009030 <kmem>
     8000018a:	8526                	mv	a0,s1
     8000018c:	00006097          	auipc	ra,0x6
     80000190:	026080e7          	jalr	38(ra) # 800061b2 <acquire>
-	r = kmem.freelist;
     80000194:	6c9c                	ld	a5,24(s1)
-	while(r){
     80000196:	c785                	beqz	a5,800001be <getfreemem+0x46>
-	uint64 ret = 0;
     80000198:	4481                	li	s1,0
-		ret += PGSIZE;
     8000019a:	6705                	lui	a4,0x1
     8000019c:	94ba                	add	s1,s1,a4
-		r = r->next;
     8000019e:	639c                	ld	a5,0(a5)
-	while(r){
     800001a0:	fff5                	bnez	a5,8000019c <getfreemem+0x24>
-	}
-	release(&kmem.lock);
     800001a2:	00009517          	auipc	a0,0x9
     800001a6:	e8e50513          	addi	a0,a0,-370 # 80009030 <kmem>
     800001aa:	00006097          	auipc	ra,0x6
     800001ae:	0bc080e7          	jalr	188(ra) # 80006266 <release>
-	return ret;
-}
     800001b2:	8526                	mv	a0,s1
     800001b4:	60e2                	ld	ra,24(sp)
     800001b6:	6442                	ld	s0,16(sp)
     800001b8:	64a2                	ld	s1,8(sp)
     800001ba:	6105                	addi	sp,sp,32
     800001bc:	8082                	ret
-	uint64 ret = 0;
     800001be:	4481                	li	s1,0
     800001c0:	b7cd                	j	800001a2 <getfreemem+0x2a>
 
@@ -694,19 +678,19 @@ kvminithart()
     80000496:	577d                	li	a4,-1
     80000498:	177e                	slli	a4,a4,0x3f
     8000049a:	8fd9                	or	a5,a5,a4
-// supervisor address translation and protection;
-// holds the address of the page table.
-static inline void 
-w_satp(uint64 x)
-{
-  asm volatile("csrw satp, %0" : : "r" (x));
+
+// use riscv's sv39 page table scheme.
+#define SATP_SV39 (8L << 60)
+
+#define MAKE_SATP(pagetable) (SATP_SV39 | (((uint64)pagetable) >> 12))
+
     8000049c:	18079073          	csrw	satp,a5
-// flush the TLB.
-static inline void
-sfence_vma()
 {
-  // the zero, zero means flush all TLB entries.
-  asm volatile("sfence.vma zero, zero");
+  uint64 x;
+  asm volatile("mv %0, ra" : "=r" (x) );
+  return x;
+}
+
     800004a0:	12000073          	sfence.vma
   sfence_vma();
 }
@@ -2149,7 +2133,7 @@ cpuid()
     80000e66:	1141                	addi	sp,sp,-16
     80000e68:	e422                	sd	s0,8(sp)
     80000e6a:	0800                	addi	s0,sp,16
-  asm volatile("mv %0, tp" : "=r" (x) );
+// read and write tp, the thread pointer, which holds
     80000e6c:	8512                	mv	a0,tp
   int id = r_tp();
   return id;
@@ -2217,46 +2201,46 @@ myproc(void) {
     80000ec8:	8082                	ret
 
 0000000080000eca <forkret>:
+}
 
 // A fork child's very first scheduling by scheduler()
 // will swtch to forkret.
 void
 forkret(void)
-{
     80000eca:	1141                	addi	sp,sp,-16
     80000ecc:	e406                	sd	ra,8(sp)
     80000ece:	e022                	sd	s0,0(sp)
     80000ed0:	0800                	addi	s0,sp,16
+{
   static int first = 1;
 
   // Still holding p->lock from scheduler.
-  release(&myproc()->lock);
     80000ed2:	00000097          	auipc	ra,0x0
     80000ed6:	fc0080e7          	jalr	-64(ra) # 80000e92 <myproc>
     80000eda:	00005097          	auipc	ra,0x5
     80000ede:	38c080e7          	jalr	908(ra) # 80006266 <release>
+  release(&myproc()->lock);
 
-  if (first) {
     80000ee2:	00008797          	auipc	a5,0x8
     80000ee6:	abe7a783          	lw	a5,-1346(a5) # 800089a0 <first.1678>
     80000eea:	eb89                	bnez	a5,80000efc <forkret+0x32>
+    // regular process (e.g., because it calls sleep), and thus cannot
     // be run from main().
     first = 0;
     fsinit(ROOTDEV);
   }
 
-  usertrapret();
     80000eec:	00001097          	auipc	ra,0x1
     80000ef0:	c40080e7          	jalr	-960(ra) # 80001b2c <usertrapret>
-}
+  usertrapret();
     80000ef4:	60a2                	ld	ra,8(sp)
     80000ef6:	6402                	ld	s0,0(sp)
     80000ef8:	0141                	addi	sp,sp,16
     80000efa:	8082                	ret
-    first = 0;
+    // be run from main().
     80000efc:	00008797          	auipc	a5,0x8
     80000f00:	aa07a223          	sw	zero,-1372(a5) # 800089a0 <first.1678>
-    fsinit(ROOTDEV);
+    first = 0;
     80000f04:	4505                	li	a0,1
     80000f06:	00002097          	auipc	ra,0x2
     80000f0a:	a3e080e7          	jalr	-1474(ra) # 80002944 <fsinit>
@@ -2297,7 +2281,7 @@ allocpid() {
     80000f54:	8082                	ret
 
 0000000080000f56 <proc_pagetable>:
-{
+// Create a user page table for a given process,
     80000f56:	1101                	addi	sp,sp,-32
     80000f58:	ec06                	sd	ra,24(sp)
     80000f5a:	e822                	sd	s0,16(sp)
@@ -2305,13 +2289,13 @@ allocpid() {
     80000f5e:	e04a                	sd	s2,0(sp)
     80000f60:	1000                	addi	s0,sp,32
     80000f62:	892a                	mv	s2,a0
-  pagetable = uvmcreate();
+{
     80000f64:	00000097          	auipc	ra,0x0
     80000f68:	8b8080e7          	jalr	-1864(ra) # 8000081c <uvmcreate>
     80000f6c:	84aa                	mv	s1,a0
-  if(pagetable == 0)
+  pagetable_t pagetable;
     80000f6e:	c121                	beqz	a0,80000fae <proc_pagetable+0x58>
-  if(mappages(pagetable, TRAMPOLINE, PGSIZE,
+  // map the trampoline code (for system call return)
     80000f70:	4729                	li	a4,10
     80000f72:	00006697          	auipc	a3,0x6
     80000f76:	08e68693          	addi	a3,a3,142 # 80007000 <_trampoline>
@@ -2322,7 +2306,7 @@ allocpid() {
     80000f84:	fffff097          	auipc	ra,0xfffff
     80000f88:	60e080e7          	jalr	1550(ra) # 80000592 <mappages>
     80000f8c:	02054863          	bltz	a0,80000fbc <proc_pagetable+0x66>
-  if(mappages(pagetable, TRAPFRAME, PGSIZE,
+    return 0;
     80000f90:	4719                	li	a4,6
     80000f92:	06093683          	ld	a3,96(s2)
     80000f96:	6605                	lui	a2,0x1
@@ -2333,7 +2317,7 @@ allocpid() {
     80000fa2:	fffff097          	auipc	ra,0xfffff
     80000fa6:	5f0080e7          	jalr	1520(ra) # 80000592 <mappages>
     80000faa:	02054163          	bltz	a0,80000fcc <proc_pagetable+0x76>
-}
+    return 0;
     80000fae:	8526                	mv	a0,s1
     80000fb0:	60e2                	ld	ra,24(sp)
     80000fb2:	6442                	ld	s0,16(sp)
@@ -2341,15 +2325,15 @@ allocpid() {
     80000fb6:	6902                	ld	s2,0(sp)
     80000fb8:	6105                	addi	sp,sp,32
     80000fba:	8082                	ret
-    uvmfree(pagetable, 0);
+  // only the supervisor uses it, on the way
     80000fbc:	4581                	li	a1,0
     80000fbe:	8526                	mv	a0,s1
     80000fc0:	00000097          	auipc	ra,0x0
     80000fc4:	a58080e7          	jalr	-1448(ra) # 80000a18 <uvmfree>
-    return 0;
+  // to/from user space, so not PTE_U.
     80000fc8:	4481                	li	s1,0
     80000fca:	b7d5                	j	80000fae <proc_pagetable+0x58>
-    uvmunmap(pagetable, TRAMPOLINE, 1, 0);
+
     80000fcc:	4681                	li	a3,0
     80000fce:	4605                	li	a2,1
     80000fd0:	040005b7          	lui	a1,0x4000
@@ -2358,17 +2342,17 @@ allocpid() {
     80000fd8:	8526                	mv	a0,s1
     80000fda:	fffff097          	auipc	ra,0xfffff
     80000fde:	77e080e7          	jalr	1918(ra) # 80000758 <uvmunmap>
-    uvmfree(pagetable, 0);
+  // map the trapframe just below TRAMPOLINE, for trampoline.S.
     80000fe2:	4581                	li	a1,0
     80000fe4:	8526                	mv	a0,s1
     80000fe6:	00000097          	auipc	ra,0x0
     80000fea:	a32080e7          	jalr	-1486(ra) # 80000a18 <uvmfree>
-    return 0;
+  if(mappages(pagetable, TRAPFRAME, PGSIZE,
     80000fee:	4481                	li	s1,0
     80000ff0:	bf7d                	j	80000fae <proc_pagetable+0x58>
 
 0000000080000ff2 <proc_freepagetable>:
-{
+// Free a process's page table, and free the
     80000ff2:	1101                	addi	sp,sp,-32
     80000ff4:	ec06                	sd	ra,24(sp)
     80000ff6:	e822                	sd	s0,16(sp)
@@ -2377,7 +2361,7 @@ allocpid() {
     80000ffc:	1000                	addi	s0,sp,32
     80000ffe:	84aa                	mv	s1,a0
     80001000:	892e                	mv	s2,a1
-  uvmunmap(pagetable, TRAMPOLINE, 1, 0);
+// physical memory it refers to.
     80001002:	4681                	li	a3,0
     80001004:	4605                	li	a2,1
     80001006:	040005b7          	lui	a1,0x4000
@@ -2385,7 +2369,7 @@ allocpid() {
     8000100c:	05b2                	slli	a1,a1,0xc
     8000100e:	fffff097          	auipc	ra,0xfffff
     80001012:	74a080e7          	jalr	1866(ra) # 80000758 <uvmunmap>
-  uvmunmap(pagetable, TRAPFRAME, 1, 0);
+void
     80001016:	4681                	li	a3,0
     80001018:	4605                	li	a2,1
     8000101a:	020005b7          	lui	a1,0x2000
@@ -2394,12 +2378,12 @@ allocpid() {
     80001022:	8526                	mv	a0,s1
     80001024:	fffff097          	auipc	ra,0xfffff
     80001028:	734080e7          	jalr	1844(ra) # 80000758 <uvmunmap>
-  uvmfree(pagetable, sz);
+proc_freepagetable(pagetable_t pagetable, uint64 sz)
     8000102c:	85ca                	mv	a1,s2
     8000102e:	8526                	mv	a0,s1
     80001030:	00000097          	auipc	ra,0x0
     80001034:	9e8080e7          	jalr	-1560(ra) # 80000a18 <uvmfree>
-}
+{
     80001038:	60e2                	ld	ra,24(sp)
     8000103a:	6442                	ld	s0,16(sp)
     8000103c:	64a2                	ld	s1,8(sp)
@@ -2408,47 +2392,47 @@ allocpid() {
     80001042:	8082                	ret
 
 0000000080001044 <freeproc>:
-{
+// including user pages.
     80001044:	1101                	addi	sp,sp,-32
     80001046:	ec06                	sd	ra,24(sp)
     80001048:	e822                	sd	s0,16(sp)
     8000104a:	e426                	sd	s1,8(sp)
     8000104c:	1000                	addi	s0,sp,32
     8000104e:	84aa                	mv	s1,a0
-  if(p->trapframe)
+// p->lock must be held.
     80001050:	7128                	ld	a0,96(a0)
     80001052:	c509                	beqz	a0,8000105c <freeproc+0x18>
-    kfree((void*)p->trapframe);
+static void
     80001054:	fffff097          	auipc	ra,0xfffff
     80001058:	fc8080e7          	jalr	-56(ra) # 8000001c <kfree>
-  p->trapframe = 0;
+freeproc(struct proc *p)
     8000105c:	0604b023          	sd	zero,96(s1)
-  if(p->pagetable)
+{
     80001060:	68a8                	ld	a0,80(s1)
     80001062:	c511                	beqz	a0,8000106e <freeproc+0x2a>
-    proc_freepagetable(p->pagetable, p->sz);
+  if(p->trapframe)
     80001064:	64ac                	ld	a1,72(s1)
     80001066:	00000097          	auipc	ra,0x0
     8000106a:	f8c080e7          	jalr	-116(ra) # 80000ff2 <proc_freepagetable>
-  p->pagetable = 0;
+    kfree((void*)p->trapframe);
     8000106e:	0404b823          	sd	zero,80(s1)
-  p->sz = 0;
+  p->trapframe = 0;
     80001072:	0404b423          	sd	zero,72(s1)
-  p->pid = 0;
+  if(p->pagetable)
     80001076:	0204a823          	sw	zero,48(s1)
-  p->parent = 0;
+    proc_freepagetable(p->pagetable, p->sz);
     8000107a:	0204bc23          	sd	zero,56(s1)
-  p->name[0] = 0;
+  p->pagetable = 0;
     8000107e:	16048023          	sb	zero,352(s1)
-  p->chan = 0;
+  p->sz = 0;
     80001082:	0204b023          	sd	zero,32(s1)
-  p->killed = 0;
+  p->pid = 0;
     80001086:	0204a423          	sw	zero,40(s1)
-  p->xstate = 0;
+  p->parent = 0;
     8000108a:	0204a623          	sw	zero,44(s1)
-  p->state = UNUSED;
+  p->name[0] = 0;
     8000108e:	0004ac23          	sw	zero,24(s1)
-}
+  p->chan = 0;
     80001092:	60e2                	ld	ra,24(sp)
     80001094:	6442                	ld	s0,16(sp)
     80001096:	64a2                	ld	s1,8(sp)
@@ -2492,36 +2476,36 @@ allocpid() {
   p->state = USED;
     800010e6:	4785                	li	a5,1
     800010e8:	cc9c                	sw	a5,24(s1)
-  if((p->trapframe = (struct trapframe *)kalloc()) == 0){
+  p->handler = 0;
     800010ea:	fffff097          	auipc	ra,0xfffff
     800010ee:	02e080e7          	jalr	46(ra) # 80000118 <kalloc>
     800010f2:	892a                	mv	s2,a0
     800010f4:	f0a8                	sd	a0,96(s1)
     800010f6:	c131                	beqz	a0,8000113a <allocproc+0x9e>
-  p->pagetable = proc_pagetable(p);
+    return 0;
     800010f8:	8526                	mv	a0,s1
     800010fa:	00000097          	auipc	ra,0x0
     800010fe:	e5c080e7          	jalr	-420(ra) # 80000f56 <proc_pagetable>
     80001102:	892a                	mv	s2,a0
     80001104:	e8a8                	sd	a0,80(s1)
-  if(p->pagetable == 0){
+  }
     80001106:	c531                	beqz	a0,80001152 <allocproc+0xb6>
-  memset(&p->context, 0, sizeof(p->context));
+  }
     80001108:	07000613          	li	a2,112
     8000110c:	4581                	li	a1,0
     8000110e:	06848513          	addi	a0,s1,104
     80001112:	fffff097          	auipc	ra,0xfffff
     80001116:	0b0080e7          	jalr	176(ra) # 800001c2 <memset>
-  p->context.ra = (uint64)forkret;
+
     8000111a:	00000797          	auipc	a5,0x0
     8000111e:	db078793          	addi	a5,a5,-592 # 80000eca <forkret>
     80001122:	f4bc                	sd	a5,104(s1)
-  p->context.sp = p->kstack + PGSIZE;
+  // Set up new context to start executing at forkret,
     80001124:	60bc                	ld	a5,64(s1)
     80001126:	6705                	lui	a4,0x1
     80001128:	97ba                	add	a5,a5,a4
     8000112a:	f8bc                	sd	a5,112(s1)
-}
+  p->context.ra = (uint64)forkret;
     8000112c:	8526                	mv	a0,s1
     8000112e:	60e2                	ld	ra,24(sp)
     80001130:	6442                	ld	s0,16(sp)
@@ -2529,80 +2513,80 @@ allocpid() {
     80001134:	6902                	ld	s2,0(sp)
     80001136:	6105                	addi	sp,sp,32
     80001138:	8082                	ret
-    freeproc(p);
+  p->handlerlock = 1;
     8000113a:	8526                	mv	a0,s1
     8000113c:	00000097          	auipc	ra,0x0
     80001140:	f08080e7          	jalr	-248(ra) # 80001044 <freeproc>
-    release(&p->lock);
+
     80001144:	8526                	mv	a0,s1
     80001146:	00005097          	auipc	ra,0x5
     8000114a:	120080e7          	jalr	288(ra) # 80006266 <release>
-    return 0;
+  // Allocate a trapframe page.
     8000114e:	84ca                	mv	s1,s2
     80001150:	bff1                	j	8000112c <allocproc+0x90>
-    freeproc(p);
+
     80001152:	8526                	mv	a0,s1
     80001154:	00000097          	auipc	ra,0x0
     80001158:	ef0080e7          	jalr	-272(ra) # 80001044 <freeproc>
-    release(&p->lock);
+  // An empty user page table.
     8000115c:	8526                	mv	a0,s1
     8000115e:	00005097          	auipc	ra,0x5
     80001162:	108080e7          	jalr	264(ra) # 80006266 <release>
-    return 0;
+  p->pagetable = proc_pagetable(p);
     80001166:	84ca                	mv	s1,s2
     80001168:	b7d1                	j	8000112c <allocproc+0x90>
 
 000000008000116a <userinit>:
-{
+
     8000116a:	1101                	addi	sp,sp,-32
     8000116c:	ec06                	sd	ra,24(sp)
     8000116e:	e822                	sd	s0,16(sp)
     80001170:	e426                	sd	s1,8(sp)
     80001172:	1000                	addi	s0,sp,32
-  p = allocproc();
+userinit(void)
     80001174:	00000097          	auipc	ra,0x0
     80001178:	f28080e7          	jalr	-216(ra) # 8000109c <allocproc>
     8000117c:	84aa                	mv	s1,a0
-  initproc = p;
+{
     8000117e:	00008797          	auipc	a5,0x8
     80001182:	e8a7b923          	sd	a0,-366(a5) # 80009010 <initproc>
-  uvminit(p->pagetable, initcode, sizeof(initcode));
+  initproc = p;
     80001186:	03400613          	li	a2,52
     8000118a:	00008597          	auipc	a1,0x8
     8000118e:	82658593          	addi	a1,a1,-2010 # 800089b0 <initcode>
     80001192:	6928                	ld	a0,80(a0)
     80001194:	fffff097          	auipc	ra,0xfffff
     80001198:	6b6080e7          	jalr	1718(ra) # 8000084a <uvminit>
-  p->sz = PGSIZE;
+  
     8000119c:	6785                	lui	a5,0x1
     8000119e:	e4bc                	sd	a5,72(s1)
-  p->trapframe->epc = 0;      // user program counter
+  uvminit(p->pagetable, initcode, sizeof(initcode));
     800011a0:	70b8                	ld	a4,96(s1)
     800011a2:	00073c23          	sd	zero,24(a4) # 1018 <_entry-0x7fffefe8>
-  p->trapframe->sp = PGSIZE;  // user stack pointer
+  p->sz = PGSIZE;
     800011a6:	70b8                	ld	a4,96(s1)
     800011a8:	fb1c                	sd	a5,48(a4)
-  safestrcpy(p->name, "initcode", sizeof(p->name));
+  // prepare for the very first "return" from kernel to user.
     800011aa:	4641                	li	a2,16
     800011ac:	00007597          	auipc	a1,0x7
     800011b0:	fd458593          	addi	a1,a1,-44 # 80008180 <etext+0x180>
     800011b4:	16048513          	addi	a0,s1,352
     800011b8:	fffff097          	auipc	ra,0xfffff
     800011bc:	15c080e7          	jalr	348(ra) # 80000314 <safestrcpy>
-  p->cwd = namei("/");
+  p->trapframe->epc = 0;      // user program counter
     800011c0:	00007517          	auipc	a0,0x7
     800011c4:	fd050513          	addi	a0,a0,-48 # 80008190 <etext+0x190>
     800011c8:	00002097          	auipc	ra,0x2
     800011cc:	1aa080e7          	jalr	426(ra) # 80003372 <namei>
     800011d0:	14a4bc23          	sd	a0,344(s1)
-  p->state = RUNNABLE;
+
     800011d4:	478d                	li	a5,3
     800011d6:	cc9c                	sw	a5,24(s1)
-  release(&p->lock);
+  p->cwd = namei("/");
     800011d8:	8526                	mv	a0,s1
     800011da:	00005097          	auipc	ra,0x5
     800011de:	08c080e7          	jalr	140(ra) # 80006266 <release>
-}
+
     800011e2:	60e2                	ld	ra,24(sp)
     800011e4:	6442                	ld	s0,16(sp)
     800011e6:	64a2                	ld	s1,8(sp)
@@ -2610,7 +2594,7 @@ allocpid() {
     800011ea:	8082                	ret
 
 00000000800011ec <growproc>:
-{
+// Grow or shrink user memory by n bytes.
     800011ec:	1101                	addi	sp,sp,-32
     800011ee:	ec06                	sd	ra,24(sp)
     800011f0:	e822                	sd	s0,16(sp)
@@ -2618,31 +2602,31 @@ allocpid() {
     800011f4:	e04a                	sd	s2,0(sp)
     800011f6:	1000                	addi	s0,sp,32
     800011f8:	84aa                	mv	s1,a0
-  struct proc *p = myproc();
+int
     800011fa:	00000097          	auipc	ra,0x0
     800011fe:	c98080e7          	jalr	-872(ra) # 80000e92 <myproc>
     80001202:	892a                	mv	s2,a0
-  sz = p->sz;
+{
     80001204:	652c                	ld	a1,72(a0)
     80001206:	0005861b          	sext.w	a2,a1
-  if(n > 0){
+  uint sz;
     8000120a:	00904f63          	bgtz	s1,80001228 <growproc+0x3c>
-  } else if(n < 0){
+  if(n > 0){
     8000120e:	0204cc63          	bltz	s1,80001246 <growproc+0x5a>
-  p->sz = sz;
+    }
     80001212:	1602                	slli	a2,a2,0x20
     80001214:	9201                	srli	a2,a2,0x20
     80001216:	04c93423          	sd	a2,72(s2)
-  return 0;
+  } else if(n < 0){
     8000121a:	4501                	li	a0,0
-}
+    sz = uvmdealloc(p->pagetable, sz, sz + n);
     8000121c:	60e2                	ld	ra,24(sp)
     8000121e:	6442                	ld	s0,16(sp)
     80001220:	64a2                	ld	s1,8(sp)
     80001222:	6902                	ld	s2,0(sp)
     80001224:	6105                	addi	sp,sp,32
     80001226:	8082                	ret
-    if((sz = uvmalloc(p->pagetable, sz, sz + n)) == 0) {
+  struct proc *p = myproc();
     80001228:	9e25                	addw	a2,a2,s1
     8000122a:	1602                	slli	a2,a2,0x20
     8000122c:	9201                	srli	a2,a2,0x20
@@ -2653,10 +2637,10 @@ allocpid() {
     80001238:	6d0080e7          	jalr	1744(ra) # 80000904 <uvmalloc>
     8000123c:	0005061b          	sext.w	a2,a0
     80001240:	fa69                	bnez	a2,80001212 <growproc+0x26>
-      return -1;
+
     80001242:	557d                	li	a0,-1
     80001244:	bfe1                	j	8000121c <growproc+0x30>
-    sz = uvmdealloc(p->pagetable, sz, sz + n);
+    if((sz = uvmalloc(p->pagetable, sz, sz + n)) == 0) {
     80001246:	9e25                	addw	a2,a2,s1
     80001248:	1602                	slli	a2,a2,0x20
     8000124a:	9201                	srli	a2,a2,0x20
@@ -2669,7 +2653,7 @@ allocpid() {
     8000125e:	bf55                	j	80001212 <growproc+0x26>
 
 0000000080001260 <fork>:
-{
+// Create a new process, copying the parent.
     80001260:	7179                	addi	sp,sp,-48
     80001262:	f406                	sd	ra,40(sp)
     80001264:	f022                	sd	s0,32(sp)
@@ -2678,26 +2662,26 @@ allocpid() {
     8000126a:	e44e                	sd	s3,8(sp)
     8000126c:	e052                	sd	s4,0(sp)
     8000126e:	1800                	addi	s0,sp,48
-  struct proc *p = myproc();
+fork(void)
     80001270:	00000097          	auipc	ra,0x0
     80001274:	c22080e7          	jalr	-990(ra) # 80000e92 <myproc>
     80001278:	892a                	mv	s2,a0
-  if((np = allocproc()) == 0){
+  struct proc *np;
     8000127a:	00000097          	auipc	ra,0x0
     8000127e:	e22080e7          	jalr	-478(ra) # 8000109c <allocproc>
     80001282:	10050f63          	beqz	a0,800013a0 <fork+0x140>
     80001286:	89aa                	mv	s3,a0
-  if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){
+    return -1;
     80001288:	04893603          	ld	a2,72(s2)
     8000128c:	692c                	ld	a1,80(a0)
     8000128e:	05093503          	ld	a0,80(s2)
     80001292:	fffff097          	auipc	ra,0xfffff
     80001296:	7be080e7          	jalr	1982(ra) # 80000a50 <uvmcopy>
     8000129a:	04054a63          	bltz	a0,800012ee <fork+0x8e>
-  np->sz = p->sz;
+    freeproc(np);
     8000129e:	04893783          	ld	a5,72(s2)
     800012a2:	04f9b423          	sd	a5,72(s3)
-  *(np->trapframe) = *(p->trapframe);
+  }
     800012a6:	06093683          	ld	a3,96(s2)
     800012aa:	87b6                	mv	a5,a3
     800012ac:	0609b703          	ld	a4,96(s3)
@@ -2713,81 +2697,81 @@ allocpid() {
     800012c8:	02078793          	addi	a5,a5,32
     800012cc:	02070713          	addi	a4,a4,32
     800012d0:	fed792e3          	bne	a5,a3,800012b4 <fork+0x54>
-  np->tracemask = p->tracemask;
+  // copy saved user registers.
     800012d4:	05892783          	lw	a5,88(s2)
     800012d8:	04f9ac23          	sw	a5,88(s3)
-  np->trapframe->a0 = 0;
+  // Cause fork to return 0 in the child.
     800012dc:	0609b783          	ld	a5,96(s3)
     800012e0:	0607b823          	sd	zero,112(a5)
     800012e4:	0d800493          	li	s1,216
-  for(i = 0; i < NOFILE; i++)
+  // increment reference counts on open file descriptors.
     800012e8:	15800a13          	li	s4,344
     800012ec:	a03d                	j	8000131a <fork+0xba>
-    freeproc(np);
+  }
     800012ee:	854e                	mv	a0,s3
     800012f0:	00000097          	auipc	ra,0x0
     800012f4:	d54080e7          	jalr	-684(ra) # 80001044 <freeproc>
-    release(&np->lock);
+
     800012f8:	854e                	mv	a0,s3
     800012fa:	00005097          	auipc	ra,0x5
     800012fe:	f6c080e7          	jalr	-148(ra) # 80006266 <release>
-    return -1;
+  // Copy user memory from parent to child.
     80001302:	5a7d                	li	s4,-1
     80001304:	a069                	j	8000138e <fork+0x12e>
-      np->ofile[i] = filedup(p->ofile[i]);
+    if(p->ofile[i])
     80001306:	00002097          	auipc	ra,0x2
     8000130a:	702080e7          	jalr	1794(ra) # 80003a08 <filedup>
     8000130e:	009987b3          	add	a5,s3,s1
     80001312:	e388                	sd	a0,0(a5)
-  for(i = 0; i < NOFILE; i++)
+  // increment reference counts on open file descriptors.
     80001314:	04a1                	addi	s1,s1,8
     80001316:	01448763          	beq	s1,s4,80001324 <fork+0xc4>
-    if(p->ofile[i])
+  for(i = 0; i < NOFILE; i++)
     8000131a:	009907b3          	add	a5,s2,s1
     8000131e:	6388                	ld	a0,0(a5)
     80001320:	f17d                	bnez	a0,80001306 <fork+0xa6>
     80001322:	bfcd                	j	80001314 <fork+0xb4>
-  np->cwd = idup(p->cwd);
+      np->ofile[i] = filedup(p->ofile[i]);
     80001324:	15893503          	ld	a0,344(s2)
     80001328:	00002097          	auipc	ra,0x2
     8000132c:	856080e7          	jalr	-1962(ra) # 80002b7e <idup>
     80001330:	14a9bc23          	sd	a0,344(s3)
-  safestrcpy(np->name, p->name, sizeof(p->name));
+
     80001334:	4641                	li	a2,16
     80001336:	16090593          	addi	a1,s2,352
     8000133a:	16098513          	addi	a0,s3,352
     8000133e:	fffff097          	auipc	ra,0xfffff
     80001342:	fd6080e7          	jalr	-42(ra) # 80000314 <safestrcpy>
-  pid = np->pid;
+
     80001346:	0309aa03          	lw	s4,48(s3)
-  release(&np->lock);
+
     8000134a:	854e                	mv	a0,s3
     8000134c:	00005097          	auipc	ra,0x5
     80001350:	f1a080e7          	jalr	-230(ra) # 80006266 <release>
-  acquire(&wait_lock);
+
     80001354:	00008497          	auipc	s1,0x8
     80001358:	d1448493          	addi	s1,s1,-748 # 80009068 <wait_lock>
     8000135c:	8526                	mv	a0,s1
     8000135e:	00005097          	auipc	ra,0x5
     80001362:	e54080e7          	jalr	-428(ra) # 800061b2 <acquire>
-  np->parent = p;
+  acquire(&wait_lock);
     80001366:	0329bc23          	sd	s2,56(s3)
-  release(&wait_lock);
+  np->parent = p;
     8000136a:	8526                	mv	a0,s1
     8000136c:	00005097          	auipc	ra,0x5
     80001370:	efa080e7          	jalr	-262(ra) # 80006266 <release>
-  acquire(&np->lock);
+
     80001374:	854e                	mv	a0,s3
     80001376:	00005097          	auipc	ra,0x5
     8000137a:	e3c080e7          	jalr	-452(ra) # 800061b2 <acquire>
-  np->state = RUNNABLE;
+  acquire(&np->lock);
     8000137e:	478d                	li	a5,3
     80001380:	00f9ac23          	sw	a5,24(s3)
-  release(&np->lock);
+  np->state = RUNNABLE;
     80001384:	854e                	mv	a0,s3
     80001386:	00005097          	auipc	ra,0x5
     8000138a:	ee0080e7          	jalr	-288(ra) # 80006266 <release>
-}
+  return pid;
     8000138e:	8552                	mv	a0,s4
     80001390:	70a2                	ld	ra,40(sp)
     80001392:	7402                	ld	s0,32(sp)
@@ -2797,12 +2781,12 @@ allocpid() {
     8000139a:	6a02                	ld	s4,0(sp)
     8000139c:	6145                	addi	sp,sp,48
     8000139e:	8082                	ret
-    return -1;
+  struct proc *p = myproc();
     800013a0:	5a7d                	li	s4,-1
     800013a2:	b7f5                	j	8000138e <fork+0x12e>
 
 00000000800013a4 <scheduler>:
-{
+scheduler(void)
     800013a4:	7139                	addi	sp,sp,-64
     800013a6:	fc06                	sd	ra,56(sp)
     800013a8:	f822                	sd	s0,48(sp)
@@ -2816,66 +2800,66 @@ allocpid() {
     800013b8:	8792                	mv	a5,tp
   int id = r_tp();
     800013ba:	2781                	sext.w	a5,a5
-  c->proc = 0;
+  
     800013bc:	00779a93          	slli	s5,a5,0x7
     800013c0:	00008717          	auipc	a4,0x8
     800013c4:	c9070713          	addi	a4,a4,-880 # 80009050 <pid_lock>
     800013c8:	9756                	add	a4,a4,s5
     800013ca:	02073823          	sd	zero,48(a4)
-        swtch(&c->context, &p->context);
+        c->proc = p;
     800013ce:	00008717          	auipc	a4,0x8
     800013d2:	cba70713          	addi	a4,a4,-838 # 80009088 <cpus+0x8>
     800013d6:	9aba                	add	s5,s5,a4
-      if(p->state == RUNNABLE) {
+      acquire(&p->lock);
     800013d8:	498d                	li	s3,3
-        p->state = RUNNING;
+        // before jumping back to us.
     800013da:	4b11                	li	s6,4
-        c->proc = p;
+        p->state = RUNNING;
     800013dc:	079e                	slli	a5,a5,0x7
     800013de:	00008a17          	auipc	s4,0x8
     800013e2:	c72a0a13          	addi	s4,s4,-910 # 80009050 <pid_lock>
     800013e6:	9a3e                	add	s4,s4,a5
-    for(p = proc; p < &proc[NPROC]; p++) {
+
     800013e8:	0000e917          	auipc	s2,0xe
     800013ec:	c9890913          	addi	s2,s2,-872 # 8000f080 <tickslock>
   asm volatile("csrr %0, sstatus" : "=r" (x) );
     800013f0:	100027f3          	csrr	a5,sstatus
-  w_sstatus(r_sstatus() | SSTATUS_SIE);
+}
     800013f4:	0027e793          	ori	a5,a5,2
   asm volatile("csrw sstatus, %0" : : "r" (x));
     800013f8:	10079073          	csrw	sstatus,a5
     800013fc:	00008497          	auipc	s1,0x8
     80001400:	08448493          	addi	s1,s1,132 # 80009480 <proc>
     80001404:	a03d                	j	80001432 <scheduler+0x8e>
-        p->state = RUNNING;
+        // before jumping back to us.
     80001406:	0164ac23          	sw	s6,24(s1)
-        c->proc = p;
+        p->state = RUNNING;
     8000140a:	029a3823          	sd	s1,48(s4)
-        swtch(&c->context, &p->context);
+        c->proc = p;
     8000140e:	06848593          	addi	a1,s1,104
     80001412:	8556                	mv	a0,s5
     80001414:	00000097          	auipc	ra,0x0
     80001418:	66e080e7          	jalr	1646(ra) # 80001a82 <swtch>
-        c->proc = 0;
+        // It should have changed its p->state before coming back.
     8000141c:	020a3823          	sd	zero,48(s4)
-      release(&p->lock);
+      }
     80001420:	8526                	mv	a0,s1
     80001422:	00005097          	auipc	ra,0x5
     80001426:	e44080e7          	jalr	-444(ra) # 80006266 <release>
-    for(p = proc; p < &proc[NPROC]; p++) {
+
     8000142a:	17048493          	addi	s1,s1,368
     8000142e:	fd2481e3          	beq	s1,s2,800013f0 <scheduler+0x4c>
-      acquire(&p->lock);
+    for(p = proc; p < &proc[NPROC]; p++) {
     80001432:	8526                	mv	a0,s1
     80001434:	00005097          	auipc	ra,0x5
     80001438:	d7e080e7          	jalr	-642(ra) # 800061b2 <acquire>
-      if(p->state == RUNNABLE) {
+      acquire(&p->lock);
     8000143c:	4c9c                	lw	a5,24(s1)
     8000143e:	ff3791e3          	bne	a5,s3,80001420 <scheduler+0x7c>
     80001442:	b7d1                	j	80001406 <scheduler+0x62>
 
 0000000080001444 <sched>:
-{
+sched(void)
     80001444:	7179                	addi	sp,sp,-48
     80001446:	f406                	sd	ra,40(sp)
     80001448:	f022                	sd	s0,32(sp)
@@ -2883,17 +2867,17 @@ allocpid() {
     8000144c:	e84a                	sd	s2,16(sp)
     8000144e:	e44e                	sd	s3,8(sp)
     80001450:	1800                	addi	s0,sp,48
-  struct proc *p = myproc();
+  int intena;
     80001452:	00000097          	auipc	ra,0x0
     80001456:	a40080e7          	jalr	-1472(ra) # 80000e92 <myproc>
     8000145a:	84aa                	mv	s1,a0
-  if(!holding(&p->lock))
+
     8000145c:	00005097          	auipc	ra,0x5
     80001460:	cdc080e7          	jalr	-804(ra) # 80006138 <holding>
     80001464:	c93d                	beqz	a0,800014da <sched+0x96>
-  asm volatile("mv %0, tp" : "=r" (x) );
+// read and write tp, the thread pointer, which holds
     80001466:	8792                	mv	a5,tp
-  if(mycpu()->noff != 1)
+    panic("sched p->lock");
     80001468:	2781                	sext.w	a5,a5
     8000146a:	079e                	slli	a5,a5,0x7
     8000146c:	00008717          	auipc	a4,0x8
@@ -2902,19 +2886,19 @@ allocpid() {
     80001476:	0a87a703          	lw	a4,168(a5)
     8000147a:	4785                	li	a5,1
     8000147c:	06f71763          	bne	a4,a5,800014ea <sched+0xa6>
-  if(p->state == RUNNING)
+    panic("sched locks");
     80001480:	4c98                	lw	a4,24(s1)
     80001482:	4791                	li	a5,4
     80001484:	06f70b63          	beq	a4,a5,800014fa <sched+0xb6>
   asm volatile("csrr %0, sstatus" : "=r" (x) );
     80001488:	100027f3          	csrr	a5,sstatus
-  return (x & SSTATUS_SIE) != 0;
+
     8000148c:	8b89                	andi	a5,a5,2
-  if(intr_get())
+    panic("sched running");
     8000148e:	efb5                	bnez	a5,8000150a <sched+0xc6>
-  asm volatile("mv %0, tp" : "=r" (x) );
+// read and write tp, the thread pointer, which holds
     80001490:	8792                	mv	a5,tp
-  intena = mycpu()->intena;
+
     80001492:	00008917          	auipc	s2,0x8
     80001496:	bbe90913          	addi	s2,s2,-1090 # 80009050 <pid_lock>
     8000149a:	2781                	sext.w	a5,a5
@@ -2922,7 +2906,7 @@ allocpid() {
     8000149e:	97ca                	add	a5,a5,s2
     800014a0:	0ac7a983          	lw	s3,172(a5)
     800014a4:	8792                	mv	a5,tp
-  swtch(&p->context, &mycpu()->context);
+  intena = mycpu()->intena;
     800014a6:	2781                	sext.w	a5,a5
     800014a8:	079e                	slli	a5,a5,0x7
     800014aa:	00008597          	auipc	a1,0x8
@@ -2932,12 +2916,12 @@ allocpid() {
     800014b8:	00000097          	auipc	ra,0x0
     800014bc:	5ca080e7          	jalr	1482(ra) # 80001a82 <swtch>
     800014c0:	8792                	mv	a5,tp
-  mycpu()->intena = intena;
+  swtch(&p->context, &mycpu()->context);
     800014c2:	2781                	sext.w	a5,a5
     800014c4:	079e                	slli	a5,a5,0x7
     800014c6:	97ca                	add	a5,a5,s2
     800014c8:	0b37a623          	sw	s3,172(a5)
-}
+  mycpu()->intena = intena;
     800014cc:	70a2                	ld	ra,40(sp)
     800014ce:	7402                	ld	s0,32(sp)
     800014d0:	64e2                	ld	s1,24(sp)
@@ -2945,52 +2929,52 @@ allocpid() {
     800014d4:	69a2                	ld	s3,8(sp)
     800014d6:	6145                	addi	sp,sp,48
     800014d8:	8082                	ret
-    panic("sched p->lock");
+  if(!holding(&p->lock))
     800014da:	00007517          	auipc	a0,0x7
     800014de:	cbe50513          	addi	a0,a0,-834 # 80008198 <etext+0x198>
     800014e2:	00004097          	auipc	ra,0x4
     800014e6:	786080e7          	jalr	1926(ra) # 80005c68 <panic>
-    panic("sched locks");
+  if(mycpu()->noff != 1)
     800014ea:	00007517          	auipc	a0,0x7
     800014ee:	cbe50513          	addi	a0,a0,-834 # 800081a8 <etext+0x1a8>
     800014f2:	00004097          	auipc	ra,0x4
     800014f6:	776080e7          	jalr	1910(ra) # 80005c68 <panic>
-    panic("sched running");
+  if(p->state == RUNNING)
     800014fa:	00007517          	auipc	a0,0x7
     800014fe:	cbe50513          	addi	a0,a0,-834 # 800081b8 <etext+0x1b8>
     80001502:	00004097          	auipc	ra,0x4
     80001506:	766080e7          	jalr	1894(ra) # 80005c68 <panic>
-    panic("sched interruptible");
+  if(intr_get())
     8000150a:	00007517          	auipc	a0,0x7
     8000150e:	cbe50513          	addi	a0,a0,-834 # 800081c8 <etext+0x1c8>
     80001512:	00004097          	auipc	ra,0x4
     80001516:	756080e7          	jalr	1878(ra) # 80005c68 <panic>
 
 000000008000151a <yield>:
-{
+yield(void)
     8000151a:	1101                	addi	sp,sp,-32
     8000151c:	ec06                	sd	ra,24(sp)
     8000151e:	e822                	sd	s0,16(sp)
     80001520:	e426                	sd	s1,8(sp)
     80001522:	1000                	addi	s0,sp,32
-  struct proc *p = myproc();
+{
     80001524:	00000097          	auipc	ra,0x0
     80001528:	96e080e7          	jalr	-1682(ra) # 80000e92 <myproc>
     8000152c:	84aa                	mv	s1,a0
-  acquire(&p->lock);
+  struct proc *p = myproc();
     8000152e:	00005097          	auipc	ra,0x5
     80001532:	c84080e7          	jalr	-892(ra) # 800061b2 <acquire>
-  p->state = RUNNABLE;
+  acquire(&p->lock);
     80001536:	478d                	li	a5,3
     80001538:	cc9c                	sw	a5,24(s1)
-  sched();
+  p->state = RUNNABLE;
     8000153a:	00000097          	auipc	ra,0x0
     8000153e:	f0a080e7          	jalr	-246(ra) # 80001444 <sched>
-  release(&p->lock);
+  sched();
     80001542:	8526                	mv	a0,s1
     80001544:	00005097          	auipc	ra,0x5
     80001548:	d22080e7          	jalr	-734(ra) # 80006266 <release>
-}
+  release(&p->lock);
     8000154c:	60e2                	ld	ra,24(sp)
     8000154e:	6442                	ld	s0,16(sp)
     80001550:	64a2                	ld	s1,8(sp)
@@ -2998,12 +2982,12 @@ allocpid() {
     80001554:	8082                	ret
 
 0000000080001556 <sleep>:
+}
 
 // Atomically release lock and sleep on chan.
 // Reacquires lock when awakened.
 void
 sleep(void *chan, struct spinlock *lk)
-{
     80001556:	7179                	addi	sp,sp,-48
     80001558:	f406                	sd	ra,40(sp)
     8000155a:	f022                	sd	s0,32(sp)
@@ -3013,48 +2997,48 @@ sleep(void *chan, struct spinlock *lk)
     80001562:	1800                	addi	s0,sp,48
     80001564:	89aa                	mv	s3,a0
     80001566:	892e                	mv	s2,a1
-  struct proc *p = myproc();
+{
     80001568:	00000097          	auipc	ra,0x0
     8000156c:	92a080e7          	jalr	-1750(ra) # 80000e92 <myproc>
     80001570:	84aa                	mv	s1,a0
+  // change p->state and then call sched.
   // Once we hold p->lock, we can be
   // guaranteed that we won't miss any wakeup
   // (wakeup locks p->lock),
   // so it's okay to release lk.
 
-  acquire(&p->lock);  //DOC: sleeplock1
     80001572:	00005097          	auipc	ra,0x5
     80001576:	c40080e7          	jalr	-960(ra) # 800061b2 <acquire>
-  release(lk);
+  acquire(&p->lock);  //DOC: sleeplock1
     8000157a:	854a                	mv	a0,s2
     8000157c:	00005097          	auipc	ra,0x5
     80001580:	cea080e7          	jalr	-790(ra) # 80006266 <release>
+  release(lk);
 
   // Go to sleep.
-  p->chan = chan;
     80001584:	0334b023          	sd	s3,32(s1)
-  p->state = SLEEPING;
+  p->chan = chan;
     80001588:	4789                	li	a5,2
     8000158a:	cc9c                	sw	a5,24(s1)
+  p->state = SLEEPING;
 
-  sched();
     8000158c:	00000097          	auipc	ra,0x0
     80001590:	eb8080e7          	jalr	-328(ra) # 80001444 <sched>
+  sched();
 
   // Tidy up.
-  p->chan = 0;
     80001594:	0204b023          	sd	zero,32(s1)
+  p->chan = 0;
 
   // Reacquire original lock.
-  release(&p->lock);
     80001598:	8526                	mv	a0,s1
     8000159a:	00005097          	auipc	ra,0x5
     8000159e:	ccc080e7          	jalr	-820(ra) # 80006266 <release>
-  acquire(lk);
+  release(&p->lock);
     800015a2:	854a                	mv	a0,s2
     800015a4:	00005097          	auipc	ra,0x5
     800015a8:	c0e080e7          	jalr	-1010(ra) # 800061b2 <acquire>
-}
+  acquire(lk);
     800015ac:	70a2                	ld	ra,40(sp)
     800015ae:	7402                	ld	s0,32(sp)
     800015b0:	64e2                	ld	s1,24(sp)
@@ -3064,7 +3048,7 @@ sleep(void *chan, struct spinlock *lk)
     800015b8:	8082                	ret
 
 00000000800015ba <wait>:
-{
+wait(uint64 addr)
     800015ba:	715d                	addi	sp,sp,-80
     800015bc:	e486                	sd	ra,72(sp)
     800015be:	e0a2                	sd	s0,64(sp)
@@ -3078,36 +3062,36 @@ sleep(void *chan, struct spinlock *lk)
     800015ce:	e062                	sd	s8,0(sp)
     800015d0:	0880                	addi	s0,sp,80
     800015d2:	8b2a                	mv	s6,a0
-  struct proc *p = myproc();
+  int havekids, pid;
     800015d4:	00000097          	auipc	ra,0x0
     800015d8:	8be080e7          	jalr	-1858(ra) # 80000e92 <myproc>
     800015dc:	892a                	mv	s2,a0
-  acquire(&wait_lock);
+
     800015de:	00008517          	auipc	a0,0x8
     800015e2:	a8a50513          	addi	a0,a0,-1398 # 80009068 <wait_lock>
     800015e6:	00005097          	auipc	ra,0x5
     800015ea:	bcc080e7          	jalr	-1076(ra) # 800061b2 <acquire>
-    havekids = 0;
+    // Scan through table looking for exited children.
     800015ee:	4b81                	li	s7,0
-        if(np->state == ZOMBIE){
+        havekids = 1;
     800015f0:	4a15                	li	s4,5
-    for(np = proc; np < &proc[NPROC]; np++){
+    havekids = 0;
     800015f2:	0000e997          	auipc	s3,0xe
     800015f6:	a8e98993          	addi	s3,s3,-1394 # 8000f080 <tickslock>
-        havekids = 1;
+
     800015fa:	4a85                	li	s5,1
-    sleep(p, &wait_lock);  //DOC: wait-sleep
+    // Wait for a child to exit.
     800015fc:	00008c17          	auipc	s8,0x8
     80001600:	a6cc0c13          	addi	s8,s8,-1428 # 80009068 <wait_lock>
-    havekids = 0;
+    // Scan through table looking for exited children.
     80001604:	875e                	mv	a4,s7
-    for(np = proc; np < &proc[NPROC]; np++){
+    havekids = 0;
     80001606:	00008497          	auipc	s1,0x8
     8000160a:	e7a48493          	addi	s1,s1,-390 # 80009480 <proc>
     8000160e:	a0bd                	j	8000167c <wait+0xc2>
-          pid = np->pid;
+          // Found one.
     80001610:	0304a983          	lw	s3,48(s1)
-          if(addr != 0 && copyout(p->pagetable, addr, (char *)&np->xstate,
+          pid = np->pid;
     80001614:	000b0e63          	beqz	s6,80001630 <wait+0x76>
     80001618:	4691                	li	a3,4
     8000161a:	02c48613          	addi	a2,s1,44
@@ -3116,65 +3100,65 @@ sleep(void *chan, struct spinlock *lk)
     80001624:	fffff097          	auipc	ra,0xfffff
     80001628:	530080e7          	jalr	1328(ra) # 80000b54 <copyout>
     8000162c:	02054563          	bltz	a0,80001656 <wait+0x9c>
-          freeproc(np);
+          }
     80001630:	8526                	mv	a0,s1
     80001632:	00000097          	auipc	ra,0x0
     80001636:	a12080e7          	jalr	-1518(ra) # 80001044 <freeproc>
-          release(&np->lock);
+          freeproc(np);
     8000163a:	8526                	mv	a0,s1
     8000163c:	00005097          	auipc	ra,0x5
     80001640:	c2a080e7          	jalr	-982(ra) # 80006266 <release>
-          release(&wait_lock);
+          release(&np->lock);
     80001644:	00008517          	auipc	a0,0x8
     80001648:	a2450513          	addi	a0,a0,-1500 # 80009068 <wait_lock>
     8000164c:	00005097          	auipc	ra,0x5
     80001650:	c1a080e7          	jalr	-998(ra) # 80006266 <release>
-          return pid;
+          release(&wait_lock);
     80001654:	a09d                	j	800016ba <wait+0x100>
-            release(&np->lock);
+                                  sizeof(np->xstate)) < 0) {
     80001656:	8526                	mv	a0,s1
     80001658:	00005097          	auipc	ra,0x5
     8000165c:	c0e080e7          	jalr	-1010(ra) # 80006266 <release>
-            release(&wait_lock);
+            release(&np->lock);
     80001660:	00008517          	auipc	a0,0x8
     80001664:	a0850513          	addi	a0,a0,-1528 # 80009068 <wait_lock>
     80001668:	00005097          	auipc	ra,0x5
     8000166c:	bfe080e7          	jalr	-1026(ra) # 80006266 <release>
-            return -1;
+            release(&wait_lock);
     80001670:	59fd                	li	s3,-1
     80001672:	a0a1                	j	800016ba <wait+0x100>
-    for(np = proc; np < &proc[NPROC]; np++){
+    havekids = 0;
     80001674:	17048493          	addi	s1,s1,368
     80001678:	03348463          	beq	s1,s3,800016a0 <wait+0xe6>
-      if(np->parent == p){
+    for(np = proc; np < &proc[NPROC]; np++){
     8000167c:	7c9c                	ld	a5,56(s1)
     8000167e:	ff279be3          	bne	a5,s2,80001674 <wait+0xba>
-        acquire(&np->lock);
+        // make sure the child isn't still in exit() or swtch().
     80001682:	8526                	mv	a0,s1
     80001684:	00005097          	auipc	ra,0x5
     80001688:	b2e080e7          	jalr	-1234(ra) # 800061b2 <acquire>
-        if(np->state == ZOMBIE){
+        havekids = 1;
     8000168c:	4c9c                	lw	a5,24(s1)
     8000168e:	f94781e3          	beq	a5,s4,80001610 <wait+0x56>
-        release(&np->lock);
+        }
     80001692:	8526                	mv	a0,s1
     80001694:	00005097          	auipc	ra,0x5
     80001698:	bd2080e7          	jalr	-1070(ra) # 80006266 <release>
-        havekids = 1;
+
     8000169c:	8756                	mv	a4,s5
     8000169e:	bfd9                	j	80001674 <wait+0xba>
-    if(!havekids || p->killed){
+    // No point waiting if we don't have any children.
     800016a0:	c701                	beqz	a4,800016a8 <wait+0xee>
     800016a2:	02892783          	lw	a5,40(s2)
     800016a6:	c79d                	beqz	a5,800016d4 <wait+0x11a>
-      release(&wait_lock);
+    if(!havekids || p->killed){
     800016a8:	00008517          	auipc	a0,0x8
     800016ac:	9c050513          	addi	a0,a0,-1600 # 80009068 <wait_lock>
     800016b0:	00005097          	auipc	ra,0x5
     800016b4:	bb6080e7          	jalr	-1098(ra) # 80006266 <release>
-      return -1;
+      release(&wait_lock);
     800016b8:	59fd                	li	s3,-1
-}
+  }
     800016ba:	854e                	mv	a0,s3
     800016bc:	60a6                	ld	ra,72(sp)
     800016be:	6406                	ld	s0,64(sp)
@@ -3188,21 +3172,21 @@ sleep(void *chan, struct spinlock *lk)
     800016ce:	6c02                	ld	s8,0(sp)
     800016d0:	6161                	addi	sp,sp,80
     800016d2:	8082                	ret
-    sleep(p, &wait_lock);  //DOC: wait-sleep
+    // Wait for a child to exit.
     800016d4:	85e2                	mv	a1,s8
     800016d6:	854a                	mv	a0,s2
     800016d8:	00000097          	auipc	ra,0x0
     800016dc:	e7e080e7          	jalr	-386(ra) # 80001556 <sleep>
-    havekids = 0;
+    // Scan through table looking for exited children.
     800016e0:	b715                	j	80001604 <wait+0x4a>
 
 00000000800016e2 <wakeup>:
+}
 
 // Wake up all processes sleeping on chan.
 // Must be called without any p->lock.
 void
 wakeup(void *chan)
-{
     800016e2:	7139                	addi	sp,sp,-64
     800016e4:	fc06                	sd	ra,56(sp)
     800016e6:	f822                	sd	s0,48(sp)
@@ -3213,48 +3197,48 @@ wakeup(void *chan)
     800016f0:	e456                	sd	s5,8(sp)
     800016f2:	0080                	addi	s0,sp,64
     800016f4:	8a2a                	mv	s4,a0
+{
   struct proc *p;
 
-  for(p = proc; p < &proc[NPROC]; p++) {
     800016f6:	00008497          	auipc	s1,0x8
     800016fa:	d8a48493          	addi	s1,s1,-630 # 80009480 <proc>
+  for(p = proc; p < &proc[NPROC]; p++) {
     if(p != myproc()){
       acquire(&p->lock);
-      if(p->state == SLEEPING && p->chan == chan) {
     800016fe:	4989                	li	s3,2
-        p->state = RUNNABLE;
+      if(p->state == SLEEPING && p->chan == chan) {
     80001700:	4a8d                	li	s5,3
-  for(p = proc; p < &proc[NPROC]; p++) {
+
     80001702:	0000e917          	auipc	s2,0xe
     80001706:	97e90913          	addi	s2,s2,-1666 # 8000f080 <tickslock>
     8000170a:	a821                	j	80001722 <wakeup+0x40>
-        p->state = RUNNABLE;
+      if(p->state == SLEEPING && p->chan == chan) {
     8000170c:	0154ac23          	sw	s5,24(s1)
+        p->state = RUNNABLE;
       }
-      release(&p->lock);
     80001710:	8526                	mv	a0,s1
     80001712:	00005097          	auipc	ra,0x5
     80001716:	b54080e7          	jalr	-1196(ra) # 80006266 <release>
-  for(p = proc; p < &proc[NPROC]; p++) {
+
     8000171a:	17048493          	addi	s1,s1,368
     8000171e:	03248463          	beq	s1,s2,80001746 <wakeup+0x64>
-    if(p != myproc()){
+  for(p = proc; p < &proc[NPROC]; p++) {
     80001722:	fffff097          	auipc	ra,0xfffff
     80001726:	770080e7          	jalr	1904(ra) # 80000e92 <myproc>
     8000172a:	fea488e3          	beq	s1,a0,8000171a <wakeup+0x38>
-      acquire(&p->lock);
+    if(p != myproc()){
     8000172e:	8526                	mv	a0,s1
     80001730:	00005097          	auipc	ra,0x5
     80001734:	a82080e7          	jalr	-1406(ra) # 800061b2 <acquire>
-      if(p->state == SLEEPING && p->chan == chan) {
+      acquire(&p->lock);
     80001738:	4c9c                	lw	a5,24(s1)
     8000173a:	fd379be3          	bne	a5,s3,80001710 <wakeup+0x2e>
     8000173e:	709c                	ld	a5,32(s1)
     80001740:	fd4798e3          	bne	a5,s4,80001710 <wakeup+0x2e>
     80001744:	b7e1                	j	8000170c <wakeup+0x2a>
+      release(&p->lock);
     }
   }
-}
     80001746:	70e2                	ld	ra,56(sp)
     80001748:	7442                	ld	s0,48(sp)
     8000174a:	74a2                	ld	s1,40(sp)
@@ -3266,7 +3250,7 @@ wakeup(void *chan)
     80001756:	8082                	ret
 
 0000000080001758 <reparent>:
-{
+reparent(struct proc *p)
     80001758:	7179                	addi	sp,sp,-48
     8000175a:	f406                	sd	ra,40(sp)
     8000175c:	f022                	sd	s0,32(sp)
@@ -3276,29 +3260,29 @@ wakeup(void *chan)
     80001764:	e052                	sd	s4,0(sp)
     80001766:	1800                	addi	s0,sp,48
     80001768:	892a                	mv	s2,a0
-  for(pp = proc; pp < &proc[NPROC]; pp++){
+
     8000176a:	00008497          	auipc	s1,0x8
     8000176e:	d1648493          	addi	s1,s1,-746 # 80009480 <proc>
-      pp->parent = initproc;
+    if(pp->parent == p){
     80001772:	00008a17          	auipc	s4,0x8
     80001776:	89ea0a13          	addi	s4,s4,-1890 # 80009010 <initproc>
-  for(pp = proc; pp < &proc[NPROC]; pp++){
+
     8000177a:	0000e997          	auipc	s3,0xe
     8000177e:	90698993          	addi	s3,s3,-1786 # 8000f080 <tickslock>
     80001782:	a029                	j	8000178c <reparent+0x34>
     80001784:	17048493          	addi	s1,s1,368
     80001788:	01348d63          	beq	s1,s3,800017a2 <reparent+0x4a>
-    if(pp->parent == p){
+  for(pp = proc; pp < &proc[NPROC]; pp++){
     8000178c:	7c9c                	ld	a5,56(s1)
     8000178e:	ff279be3          	bne	a5,s2,80001784 <reparent+0x2c>
-      pp->parent = initproc;
+    if(pp->parent == p){
     80001792:	000a3503          	ld	a0,0(s4)
     80001796:	fc88                	sd	a0,56(s1)
-      wakeup(initproc);
+      pp->parent = initproc;
     80001798:	00000097          	auipc	ra,0x0
     8000179c:	f4a080e7          	jalr	-182(ra) # 800016e2 <wakeup>
     800017a0:	b7d5                	j	80001784 <reparent+0x2c>
-}
+  }
     800017a2:	70a2                	ld	ra,40(sp)
     800017a4:	7402                	ld	s0,32(sp)
     800017a6:	64e2                	ld	s1,24(sp)
@@ -3309,7 +3293,7 @@ wakeup(void *chan)
     800017b0:	8082                	ret
 
 00000000800017b2 <exit>:
-{
+exit(int status)
     800017b2:	7179                	addi	sp,sp,-48
     800017b4:	f406                	sd	ra,40(sp)
     800017b6:	f022                	sd	s0,32(sp)
@@ -3319,88 +3303,88 @@ wakeup(void *chan)
     800017be:	e052                	sd	s4,0(sp)
     800017c0:	1800                	addi	s0,sp,48
     800017c2:	8a2a                	mv	s4,a0
-  struct proc *p = myproc();
+{
     800017c4:	fffff097          	auipc	ra,0xfffff
     800017c8:	6ce080e7          	jalr	1742(ra) # 80000e92 <myproc>
     800017cc:	89aa                	mv	s3,a0
-  if(p == initproc)
+
     800017ce:	00008797          	auipc	a5,0x8
     800017d2:	8427b783          	ld	a5,-1982(a5) # 80009010 <initproc>
     800017d6:	0d850493          	addi	s1,a0,216
     800017da:	15850913          	addi	s2,a0,344
     800017de:	02a79363          	bne	a5,a0,80001804 <exit+0x52>
-    panic("init exiting");
+  if(p == initproc)
     800017e2:	00007517          	auipc	a0,0x7
     800017e6:	9fe50513          	addi	a0,a0,-1538 # 800081e0 <etext+0x1e0>
     800017ea:	00004097          	auipc	ra,0x4
     800017ee:	47e080e7          	jalr	1150(ra) # 80005c68 <panic>
-      fileclose(f);
+      struct file *f = p->ofile[fd];
     800017f2:	00002097          	auipc	ra,0x2
     800017f6:	268080e7          	jalr	616(ra) # 80003a5a <fileclose>
-      p->ofile[fd] = 0;
+      fileclose(f);
     800017fa:	0004b023          	sd	zero,0(s1)
-  for(int fd = 0; fd < NOFILE; fd++){
+  // Close all open files.
     800017fe:	04a1                	addi	s1,s1,8
     80001800:	01248563          	beq	s1,s2,8000180a <exit+0x58>
-    if(p->ofile[fd]){
+  for(int fd = 0; fd < NOFILE; fd++){
     80001804:	6088                	ld	a0,0(s1)
     80001806:	f575                	bnez	a0,800017f2 <exit+0x40>
     80001808:	bfdd                	j	800017fe <exit+0x4c>
-  begin_op();
+
     8000180a:	00002097          	auipc	ra,0x2
     8000180e:	d84080e7          	jalr	-636(ra) # 8000358e <begin_op>
-  iput(p->cwd);
+  begin_op();
     80001812:	1589b503          	ld	a0,344(s3)
     80001816:	00001097          	auipc	ra,0x1
     8000181a:	560080e7          	jalr	1376(ra) # 80002d76 <iput>
-  end_op();
+  iput(p->cwd);
     8000181e:	00002097          	auipc	ra,0x2
     80001822:	df0080e7          	jalr	-528(ra) # 8000360e <end_op>
-  p->cwd = 0;
+  end_op();
     80001826:	1409bc23          	sd	zero,344(s3)
-  acquire(&wait_lock);
+
     8000182a:	00008497          	auipc	s1,0x8
     8000182e:	83e48493          	addi	s1,s1,-1986 # 80009068 <wait_lock>
     80001832:	8526                	mv	a0,s1
     80001834:	00005097          	auipc	ra,0x5
     80001838:	97e080e7          	jalr	-1666(ra) # 800061b2 <acquire>
-  reparent(p);
+  // Give any children to init.
     8000183c:	854e                	mv	a0,s3
     8000183e:	00000097          	auipc	ra,0x0
     80001842:	f1a080e7          	jalr	-230(ra) # 80001758 <reparent>
-  wakeup(p->parent);
+  // Parent might be sleeping in wait().
     80001846:	0389b503          	ld	a0,56(s3)
     8000184a:	00000097          	auipc	ra,0x0
     8000184e:	e98080e7          	jalr	-360(ra) # 800016e2 <wakeup>
-  acquire(&p->lock);
+  
     80001852:	854e                	mv	a0,s3
     80001854:	00005097          	auipc	ra,0x5
     80001858:	95e080e7          	jalr	-1698(ra) # 800061b2 <acquire>
-  p->xstate = status;
+
     8000185c:	0349a623          	sw	s4,44(s3)
-  p->state = ZOMBIE;
+  p->xstate = status;
     80001860:	4795                	li	a5,5
     80001862:	00f9ac23          	sw	a5,24(s3)
-  release(&wait_lock);
+
     80001866:	8526                	mv	a0,s1
     80001868:	00005097          	auipc	ra,0x5
     8000186c:	9fe080e7          	jalr	-1538(ra) # 80006266 <release>
-  sched();
+  // Jump into the scheduler, never to return.
     80001870:	00000097          	auipc	ra,0x0
     80001874:	bd4080e7          	jalr	-1068(ra) # 80001444 <sched>
-  panic("zombie exit");
+  sched();
     80001878:	00007517          	auipc	a0,0x7
     8000187c:	97850513          	addi	a0,a0,-1672 # 800081f0 <etext+0x1f0>
     80001880:	00004097          	auipc	ra,0x4
     80001884:	3e8080e7          	jalr	1000(ra) # 80005c68 <panic>
 
 0000000080001888 <kill>:
+
 // Kill the process with the given pid.
 // The victim won't exit until it tries to return
 // to user space (see usertrap() in trap.c).
 int
 kill(int pid)
-{
     80001888:	7179                	addi	sp,sp,-48
     8000188a:	f406                	sd	ra,40(sp)
     8000188c:	f022                	sd	s0,32(sp)
@@ -3409,50 +3393,50 @@ kill(int pid)
     80001892:	e44e                	sd	s3,8(sp)
     80001894:	1800                	addi	s0,sp,48
     80001896:	892a                	mv	s2,a0
+{
   struct proc *p;
 
-  for(p = proc; p < &proc[NPROC]; p++){
     80001898:	00008497          	auipc	s1,0x8
     8000189c:	be848493          	addi	s1,s1,-1048 # 80009480 <proc>
     800018a0:	0000d997          	auipc	s3,0xd
     800018a4:	7e098993          	addi	s3,s3,2016 # 8000f080 <tickslock>
-    acquire(&p->lock);
+  for(p = proc; p < &proc[NPROC]; p++){
     800018a8:	8526                	mv	a0,s1
     800018aa:	00005097          	auipc	ra,0x5
     800018ae:	908080e7          	jalr	-1784(ra) # 800061b2 <acquire>
-    if(p->pid == pid){
+    acquire(&p->lock);
     800018b2:	589c                	lw	a5,48(s1)
     800018b4:	01278d63          	beq	a5,s2,800018ce <kill+0x46>
+        // Wake process from sleep().
         p->state = RUNNABLE;
       }
       release(&p->lock);
       return 0;
     }
-    release(&p->lock);
     800018b8:	8526                	mv	a0,s1
     800018ba:	00005097          	auipc	ra,0x5
     800018be:	9ac080e7          	jalr	-1620(ra) # 80006266 <release>
-  for(p = proc; p < &proc[NPROC]; p++){
+
     800018c2:	17048493          	addi	s1,s1,368
     800018c6:	ff3491e3          	bne	s1,s3,800018a8 <kill+0x20>
+    release(&p->lock);
   }
-  return -1;
     800018ca:	557d                	li	a0,-1
     800018cc:	a829                	j	800018e6 <kill+0x5e>
-      p->killed = 1;
+    if(p->pid == pid){
     800018ce:	4785                	li	a5,1
     800018d0:	d49c                	sw	a5,40(s1)
-      if(p->state == SLEEPING){
+      p->killed = 1;
     800018d2:	4c98                	lw	a4,24(s1)
     800018d4:	4789                	li	a5,2
     800018d6:	00f70f63          	beq	a4,a5,800018f4 <kill+0x6c>
-      release(&p->lock);
+      }
     800018da:	8526                	mv	a0,s1
     800018dc:	00005097          	auipc	ra,0x5
     800018e0:	98a080e7          	jalr	-1654(ra) # 80006266 <release>
-      return 0;
+      release(&p->lock);
     800018e4:	4501                	li	a0,0
-}
+  return -1;
     800018e6:	70a2                	ld	ra,40(sp)
     800018e8:	7402                	ld	s0,32(sp)
     800018ea:	64e2                	ld	s1,24(sp)
@@ -3460,18 +3444,18 @@ kill(int pid)
     800018ee:	69a2                	ld	s3,8(sp)
     800018f0:	6145                	addi	sp,sp,48
     800018f2:	8082                	ret
-        p->state = RUNNABLE;
+        // Wake process from sleep().
     800018f4:	478d                	li	a5,3
     800018f6:	cc9c                	sw	a5,24(s1)
     800018f8:	b7cd                	j	800018da <kill+0x52>
 
 00000000800018fa <either_copyout>:
+
 // Copy to either a user address, or kernel address,
 // depending on usr_dst.
 // Returns 0 on success, -1 on error.
 int
 either_copyout(int user_dst, uint64 dst, void *src, uint64 len)
-{
     800018fa:	7179                	addi	sp,sp,-48
     800018fc:	f406                	sd	ra,40(sp)
     800018fe:	f022                	sd	s0,32(sp)
@@ -3484,23 +3468,23 @@ either_copyout(int user_dst, uint64 dst, void *src, uint64 len)
     8000190c:	892e                	mv	s2,a1
     8000190e:	89b2                	mv	s3,a2
     80001910:	8a36                	mv	s4,a3
-  struct proc *p = myproc();
+{
     80001912:	fffff097          	auipc	ra,0xfffff
     80001916:	580080e7          	jalr	1408(ra) # 80000e92 <myproc>
-  if(user_dst){
+  struct proc *p = myproc();
     8000191a:	c08d                	beqz	s1,8000193c <either_copyout+0x42>
-    return copyout(p->pagetable, dst, src, len);
+  if(user_dst){
     8000191c:	86d2                	mv	a3,s4
     8000191e:	864e                	mv	a2,s3
     80001920:	85ca                	mv	a1,s2
     80001922:	6928                	ld	a0,80(a0)
     80001924:	fffff097          	auipc	ra,0xfffff
     80001928:	230080e7          	jalr	560(ra) # 80000b54 <copyout>
+    return copyout(p->pagetable, dst, src, len);
   } else {
     memmove((char *)dst, src, len);
     return 0;
   }
-}
     8000192c:	70a2                	ld	ra,40(sp)
     8000192e:	7402                	ld	s0,32(sp)
     80001930:	64e2                	ld	s1,24(sp)
@@ -3509,23 +3493,23 @@ either_copyout(int user_dst, uint64 dst, void *src, uint64 len)
     80001936:	6a02                	ld	s4,0(sp)
     80001938:	6145                	addi	sp,sp,48
     8000193a:	8082                	ret
-    memmove((char *)dst, src, len);
+  } else {
     8000193c:	000a061b          	sext.w	a2,s4
     80001940:	85ce                	mv	a1,s3
     80001942:	854a                	mv	a0,s2
     80001944:	fffff097          	auipc	ra,0xfffff
     80001948:	8de080e7          	jalr	-1826(ra) # 80000222 <memmove>
-    return 0;
+    memmove((char *)dst, src, len);
     8000194c:	8526                	mv	a0,s1
     8000194e:	bff9                	j	8000192c <either_copyout+0x32>
 
 0000000080001950 <either_copyin>:
+
 // Copy from either a user address, or kernel address,
 // depending on usr_src.
 // Returns 0 on success, -1 on error.
 int
 either_copyin(void *dst, int user_src, uint64 src, uint64 len)
-{
     80001950:	7179                	addi	sp,sp,-48
     80001952:	f406                	sd	ra,40(sp)
     80001954:	f022                	sd	s0,32(sp)
@@ -3538,23 +3522,23 @@ either_copyin(void *dst, int user_src, uint64 src, uint64 len)
     80001962:	84ae                	mv	s1,a1
     80001964:	89b2                	mv	s3,a2
     80001966:	8a36                	mv	s4,a3
-  struct proc *p = myproc();
+{
     80001968:	fffff097          	auipc	ra,0xfffff
     8000196c:	52a080e7          	jalr	1322(ra) # 80000e92 <myproc>
-  if(user_src){
+  struct proc *p = myproc();
     80001970:	c08d                	beqz	s1,80001992 <either_copyin+0x42>
-    return copyin(p->pagetable, dst, src, len);
+  if(user_src){
     80001972:	86d2                	mv	a3,s4
     80001974:	864e                	mv	a2,s3
     80001976:	85ca                	mv	a1,s2
     80001978:	6928                	ld	a0,80(a0)
     8000197a:	fffff097          	auipc	ra,0xfffff
     8000197e:	266080e7          	jalr	614(ra) # 80000be0 <copyin>
+    return copyin(p->pagetable, dst, src, len);
   } else {
     memmove(dst, (char*)src, len);
     return 0;
   }
-}
     80001982:	70a2                	ld	ra,40(sp)
     80001984:	7402                	ld	s0,32(sp)
     80001986:	64e2                	ld	s1,24(sp)
@@ -3563,23 +3547,23 @@ either_copyin(void *dst, int user_src, uint64 src, uint64 len)
     8000198c:	6a02                	ld	s4,0(sp)
     8000198e:	6145                	addi	sp,sp,48
     80001990:	8082                	ret
-    memmove(dst, (char*)src, len);
+  } else {
     80001992:	000a061b          	sext.w	a2,s4
     80001996:	85ce                	mv	a1,s3
     80001998:	854a                	mv	a0,s2
     8000199a:	fffff097          	auipc	ra,0xfffff
     8000199e:	888080e7          	jalr	-1912(ra) # 80000222 <memmove>
-    return 0;
+    memmove(dst, (char*)src, len);
     800019a2:	8526                	mv	a0,s1
     800019a4:	bff9                	j	80001982 <either_copyin+0x32>
 
 00000000800019a6 <procdump>:
+
 // Print a process listing to console.  For debugging.
 // Runs when user types ^P on console.
 // No lock to avoid wedging a stuck machine further.
 void
 procdump(void)
-{
     800019a6:	715d                	addi	sp,sp,-80
     800019a8:	e486                	sd	ra,72(sp)
     800019aa:	e0a2                	sd	s0,64(sp)
@@ -3591,59 +3575,59 @@ procdump(void)
     800019b6:	e85a                	sd	s6,16(sp)
     800019b8:	e45e                	sd	s7,8(sp)
     800019ba:	0880                	addi	s0,sp,80
+  [RUNNING]   "run   ",
   [ZOMBIE]    "zombie"
   };
   struct proc *p;
   char *state;
 
-  printf("\n");
     800019bc:	00006517          	auipc	a0,0x6
     800019c0:	68c50513          	addi	a0,a0,1676 # 80008048 <etext+0x48>
     800019c4:	00004097          	auipc	ra,0x4
     800019c8:	2ee080e7          	jalr	750(ra) # 80005cb2 <printf>
-  for(p = proc; p < &proc[NPROC]; p++){
+  printf("\n");
     800019cc:	00008497          	auipc	s1,0x8
     800019d0:	c1448493          	addi	s1,s1,-1004 # 800095e0 <proc+0x160>
     800019d4:	0000e917          	auipc	s2,0xe
     800019d8:	80c90913          	addi	s2,s2,-2036 # 8000f1e0 <bcache+0x148>
+  for(p = proc; p < &proc[NPROC]; p++){
     if(p->state == UNUSED)
       continue;
-    if(p->state >= 0 && p->state < NELEM(states) && states[p->state])
     800019dc:	4b15                	li	s6,5
+    if(p->state >= 0 && p->state < NELEM(states) && states[p->state])
       state = states[p->state];
     else
-      state = "???";
     800019de:	00007997          	auipc	s3,0x7
     800019e2:	82298993          	addi	s3,s3,-2014 # 80008200 <etext+0x200>
-    printf("%d %s %s", p->pid, state, p->name);
+      state = "???";
     800019e6:	00007a97          	auipc	s5,0x7
     800019ea:	822a8a93          	addi	s5,s5,-2014 # 80008208 <etext+0x208>
-    printf("\n");
+    printf("%d %s %s", p->pid, state, p->name);
     800019ee:	00006a17          	auipc	s4,0x6
     800019f2:	65aa0a13          	addi	s4,s4,1626 # 80008048 <etext+0x48>
-    if(p->state >= 0 && p->state < NELEM(states) && states[p->state])
+      continue;
     800019f6:	00007b97          	auipc	s7,0x7
     800019fa:	84ab8b93          	addi	s7,s7,-1974 # 80008240 <states.1715>
     800019fe:	a00d                	j	80001a20 <procdump+0x7a>
-    printf("%d %s %s", p->pid, state, p->name);
+      state = "???";
     80001a00:	ed06a583          	lw	a1,-304(a3)
     80001a04:	8556                	mv	a0,s5
     80001a06:	00004097          	auipc	ra,0x4
     80001a0a:	2ac080e7          	jalr	684(ra) # 80005cb2 <printf>
-    printf("\n");
+    printf("%d %s %s", p->pid, state, p->name);
     80001a0e:	8552                	mv	a0,s4
     80001a10:	00004097          	auipc	ra,0x4
     80001a14:	2a2080e7          	jalr	674(ra) # 80005cb2 <printf>
-  for(p = proc; p < &proc[NPROC]; p++){
+  printf("\n");
     80001a18:	17048493          	addi	s1,s1,368
     80001a1c:	03248163          	beq	s1,s2,80001a3e <procdump+0x98>
-    if(p->state == UNUSED)
+  for(p = proc; p < &proc[NPROC]; p++){
     80001a20:	86a6                	mv	a3,s1
     80001a22:	eb84a783          	lw	a5,-328(s1)
     80001a26:	dbed                	beqz	a5,80001a18 <procdump+0x72>
-      state = "???";
+    else
     80001a28:	864e                	mv	a2,s3
-    if(p->state >= 0 && p->state < NELEM(states) && states[p->state])
+      continue;
     80001a2a:	fcfb6be3          	bltu	s6,a5,80001a00 <procdump+0x5a>
     80001a2e:	1782                	slli	a5,a5,0x20
     80001a30:	9381                	srli	a5,a5,0x20
@@ -3651,11 +3635,11 @@ procdump(void)
     80001a34:	97de                	add	a5,a5,s7
     80001a36:	6390                	ld	a2,0(a5)
     80001a38:	f661                	bnez	a2,80001a00 <procdump+0x5a>
-      state = "???";
+    else
     80001a3a:	864e                	mv	a2,s3
     80001a3c:	b7d1                	j	80001a00 <procdump+0x5a>
+    printf("\n");
   }
-}
     80001a3e:	60a6                	ld	ra,72(sp)
     80001a40:	6406                	ld	s0,64(sp)
     80001a42:	74e2                	ld	s1,56(sp)
@@ -3669,31 +3653,20 @@ procdump(void)
     80001a52:	8082                	ret
 
 0000000080001a54 <getnproc>:
-uint64
-getnproc(void){
+}
     80001a54:	1141                	addi	sp,sp,-16
     80001a56:	e422                	sd	s0,8(sp)
     80001a58:	0800                	addi	s0,sp,16
-    struct proc* p;
-	uint64 ret = 0;
     80001a5a:	4501                	li	a0,0
-	for(p = proc; p < &proc[NPROC]; p++) {
     80001a5c:	00008797          	auipc	a5,0x8
     80001a60:	a2478793          	addi	a5,a5,-1500 # 80009480 <proc>
     80001a64:	0000d697          	auipc	a3,0xd
     80001a68:	61c68693          	addi	a3,a3,1564 # 8000f080 <tickslock>
-    	if(p->state != UNUSED){
     80001a6c:	4f98                	lw	a4,24(a5)
-			ret++;
     80001a6e:	00e03733          	snez	a4,a4
     80001a72:	953a                	add	a0,a0,a4
-	for(p = proc; p < &proc[NPROC]; p++) {
     80001a74:	17078793          	addi	a5,a5,368
     80001a78:	fed79ae3          	bne	a5,a3,80001a6c <getnproc+0x18>
-    	}
-	}
-	return ret;
-}
     80001a7c:	6422                	ld	s0,8(sp)
     80001a7e:	0141                	addi	sp,sp,16
     80001a80:	8082                	ret
@@ -3773,31 +3746,31 @@ trapinithart(void)
     80001b2a:	8082                	ret
 
 0000000080001b2c <usertrapret>:
-//
-// return to user space
-//
-void
-usertrapret(void)
-{
+                  p->trapframe->sa2 = p->trapframe->a2;
+                  p->trapframe->sa3 = p->trapframe->a3;
+                  p->trapframe->sa4 = p->trapframe->a4;
+                  p->trapframe->sa5 = p->trapframe->a5;
+                  p->trapframe->sa6 = p->trapframe->a6;
+                  p->trapframe->sa7 = p->trapframe->a7;
     80001b2c:	1141                	addi	sp,sp,-16
     80001b2e:	e406                	sd	ra,8(sp)
     80001b30:	e022                	sd	s0,0(sp)
     80001b32:	0800                	addi	s0,sp,16
-  struct proc *p = myproc();
+                  p->trapframe->ss2 = p->trapframe->s2;
     80001b34:	fffff097          	auipc	ra,0xfffff
     80001b38:	35e080e7          	jalr	862(ra) # 80000e92 <myproc>
   asm volatile("csrr %0, sstatus" : "=r" (x) );
     80001b3c:	100027f3          	csrr	a5,sstatus
-  w_sstatus(r_sstatus() & ~SSTATUS_SIE);
+}
     80001b40:	9bf5                	andi	a5,a5,-3
   asm volatile("csrw sstatus, %0" : : "r" (x));
     80001b42:	10079073          	csrw	sstatus,a5
-  // kerneltrap() to usertrap(), so turn off interrupts until
-  // we're back in user space, where usertrap() is correct.
-  intr_off();
-
-  // send syscalls, interrupts, and exceptions to trampoline.S
-  w_stvec(TRAMPOLINE + (uservec - trampoline));
+                  p->trapframe->ss5 = p->trapframe->s5;
+                  p->trapframe->ss6 = p->trapframe->s6;
+                  p->trapframe->ss7 = p->trapframe->s7;
+                  p->trapframe->ss8 = p->trapframe->s8;
+                  p->trapframe->ss9 = p->trapframe->s9;
+                  p->trapframe->ss10 = p->trapframe->s10;
     80001b46:	00005617          	auipc	a2,0x5
     80001b4a:	4ba60613          	addi	a2,a2,1210 # 80007000 <_trampoline>
     80001b4e:	00005697          	auipc	a3,0x5
@@ -3809,66 +3782,66 @@ usertrapret(void)
     80001b60:	96be                	add	a3,a3,a5
   asm volatile("csrw stvec, %0" : : "r" (x));
     80001b62:	10569073          	csrw	stvec,a3
-
-  // set up trapframe values that uservec will need when
-  // the process next re-enters the kernel.
-  p->trapframe->kernel_satp = r_satp();         // kernel page table
+                  p->trapframe->ss11 = p->trapframe->s11;
+                  p->trapframe->st3 = p->trapframe->t3;
+                  p->trapframe->st4 = p->trapframe->t4;
+                  p->trapframe->st5 = p->trapframe->t5;
     80001b66:	7138                	ld	a4,96(a0)
-  asm volatile("csrr %0, satp" : "=r" (x) );
+}
     80001b68:	180026f3          	csrr	a3,satp
     80001b6c:	e314                	sd	a3,0(a4)
-  p->trapframe->kernel_sp = p->kstack + PGSIZE; // process's kernel stack
+                  p->trapframe->st6 = p->trapframe->t6;
     80001b6e:	7138                	ld	a4,96(a0)
     80001b70:	6134                	ld	a3,64(a0)
     80001b72:	6585                	lui	a1,0x1
     80001b74:	96ae                	add	a3,a3,a1
     80001b76:	e714                	sd	a3,8(a4)
-  p->trapframe->kernel_trap = (uint64)usertrap;
+                  p->trapframe->epc = p->handler;
     80001b78:	7138                	ld	a4,96(a0)
     80001b7a:	00000697          	auipc	a3,0x0
     80001b7e:	13868693          	addi	a3,a3,312 # 80001cb2 <usertrap>
     80001b82:	eb14                	sd	a3,16(a4)
-  p->trapframe->kernel_hartid = r_tp();         // hartid for cpuid()
+              }
     80001b84:	7138                	ld	a4,96(a0)
-  asm volatile("mv %0, tp" : "=r" (x) );
+// read and write tp, the thread pointer, which holds
     80001b86:	8692                	mv	a3,tp
     80001b88:	f314                	sd	a3,32(a4)
   asm volatile("csrr %0, sstatus" : "=r" (x) );
     80001b8a:	100026f3          	csrr	a3,sstatus
-  // set up the registers that trampoline.S's sret will use
-  // to get to user space.
-  
-  // set S Previous Privilege mode to User.
-  unsigned long x = r_sstatus();
-  x &= ~SSTATUS_SPP; // clear SPP to 0 for user mode
+      }
+    // ok
+  } else {
+    printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
+    printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
+    p->killed = 1;
     80001b8e:	eff6f693          	andi	a3,a3,-257
-  x |= SSTATUS_SPIE; // enable interrupts in user mode
+  }
     80001b92:	0206e693          	ori	a3,a3,32
   asm volatile("csrw sstatus, %0" : : "r" (x));
     80001b96:	10069073          	csrw	sstatus,a3
-  w_sstatus(x);
 
-  // set S Exception Program Counter to the saved user pc.
-  w_sepc(p->trapframe->epc);
+  if(p->killed)
+    exit(-1);
+
     80001b9a:	7138                	ld	a4,96(a0)
   asm volatile("csrw sepc, %0" : : "r" (x));
     80001b9c:	6f18                	ld	a4,24(a4)
     80001b9e:	14171073          	csrw	sepc,a4
-
-  // tell trampoline.S the user page table to switch to.
-  uint64 satp = MAKE_SATP(p->pagetable);
+  // give up the CPU if this is a timer interrupt.
+  if(which_dev == 2)
+    yield();
     80001ba2:	692c                	ld	a1,80(a0)
     80001ba4:	81b1                	srli	a1,a1,0xc
 
-  // jump to trampoline.S at the top of memory, which 
-  // switches to the user page table, restores user registers,
-  // and switches to user mode with sret.
-  uint64 fn = TRAMPOLINE + (userret - trampoline);
+  usertrapret();
+}
+
+//
     80001ba6:	00005717          	auipc	a4,0x5
     80001baa:	4ea70713          	addi	a4,a4,1258 # 80007090 <userret>
     80001bae:	8f11                	sub	a4,a4,a2
     80001bb0:	97ba                	add	a5,a5,a4
-  ((void (*)(uint64,uint64))fn)(TRAPFRAME, satp);
+// return to user space
     80001bb2:	577d                	li	a4,-1
     80001bb4:	177e                	slli	a4,a4,0x3f
     80001bb6:	8dd9                	or	a1,a1,a4
@@ -3876,44 +3849,44 @@ usertrapret(void)
     80001bbc:	157d                	addi	a0,a0,-1
     80001bbe:	0536                	slli	a0,a0,0xd
     80001bc0:	9782                	jalr	a5
-}
+//
     80001bc2:	60a2                	ld	ra,8(sp)
     80001bc4:	6402                	ld	s0,0(sp)
     80001bc6:	0141                	addi	sp,sp,16
     80001bc8:	8082                	ret
 
 0000000080001bca <clockintr>:
-  w_sstatus(sstatus);
-}
+  // set S Exception Program Counter to the saved user pc.
+  w_sepc(p->trapframe->epc);
 
-void
-clockintr()
-{
+  // tell trampoline.S the user page table to switch to.
+  uint64 satp = MAKE_SATP(p->pagetable);
+
     80001bca:	1101                	addi	sp,sp,-32
     80001bcc:	ec06                	sd	ra,24(sp)
     80001bce:	e822                	sd	s0,16(sp)
     80001bd0:	e426                	sd	s1,8(sp)
     80001bd2:	1000                	addi	s0,sp,32
-  acquire(&tickslock);
+  // jump to trampoline.S at the top of memory, which 
     80001bd4:	0000d497          	auipc	s1,0xd
     80001bd8:	4ac48493          	addi	s1,s1,1196 # 8000f080 <tickslock>
     80001bdc:	8526                	mv	a0,s1
     80001bde:	00004097          	auipc	ra,0x4
     80001be2:	5d4080e7          	jalr	1492(ra) # 800061b2 <acquire>
-  ticks++;
+  // switches to the user page table, restores user registers,
     80001be6:	00007517          	auipc	a0,0x7
     80001bea:	43250513          	addi	a0,a0,1074 # 80009018 <ticks>
     80001bee:	411c                	lw	a5,0(a0)
     80001bf0:	2785                	addiw	a5,a5,1
     80001bf2:	c11c                	sw	a5,0(a0)
-  wakeup(&ticks);
+  // and switches to user mode with sret.
     80001bf4:	00000097          	auipc	ra,0x0
     80001bf8:	aee080e7          	jalr	-1298(ra) # 800016e2 <wakeup>
-  release(&tickslock);
+  uint64 fn = TRAMPOLINE + (userret - trampoline);
     80001bfc:	8526                	mv	a0,s1
     80001bfe:	00004097          	auipc	ra,0x4
     80001c02:	668080e7          	jalr	1640(ra) # 80006266 <release>
-}
+  ((void (*)(uint64,uint64))fn)(TRAPFRAME, satp);
     80001c06:	60e2                	ld	ra,24(sp)
     80001c08:	6442                	ld	s0,16(sp)
     80001c0a:	64a2                	ld	s1,8(sp)
@@ -3921,102 +3894,102 @@ clockintr()
     80001c0e:	8082                	ret
 
 0000000080001c10 <devintr>:
-// returns 2 if timer interrupt,
-// 1 if other device,
-// 0 if not recognized.
-int
-devintr()
+// on whatever the current kernel stack is.
+void 
+kerneltrap()
 {
+  int which_dev = 0;
+  uint64 sepc = r_sepc();
     80001c10:	1101                	addi	sp,sp,-32
     80001c12:	ec06                	sd	ra,24(sp)
     80001c14:	e822                	sd	s0,16(sp)
     80001c16:	e426                	sd	s1,8(sp)
     80001c18:	1000                	addi	s0,sp,32
-  asm volatile("csrr %0, scause" : "=r" (x) );
+
     80001c1a:	14202773          	csrr	a4,scause
+  uint64 sstatus = r_sstatus();
   uint64 scause = r_scause();
-
-  if((scause & 0x8000000000000000L) &&
+  
     80001c1e:	00074d63          	bltz	a4,80001c38 <devintr+0x28>
-    // now allowed to interrupt again.
-    if(irq)
-      plic_complete(irq);
+  // so restore trap registers for use by kernelvec.S's sepc instruction.
+  w_sepc(sepc);
+  w_sstatus(sstatus);
+}
 
-    return 1;
-  } else if(scause == 0x8000000000000001L){
+void
     80001c22:	57fd                	li	a5,-1
     80001c24:	17fe                	slli	a5,a5,0x3f
     80001c26:	0785                	addi	a5,a5,1
-    // the SSIP bit in sip.
-    w_sip(r_sip() & ~2);
-
-    return 2;
-  } else {
-    return 0;
+// check if it's an external interrupt or software interrupt,
+// and handle it.
+// returns 2 if timer interrupt,
+// 1 if other device,
+// 0 if not recognized.
+int
     80001c28:	4501                	li	a0,0
-  } else if(scause == 0x8000000000000001L){
+void
     80001c2a:	06f70363          	beq	a4,a5,80001c90 <devintr+0x80>
-  }
-}
+devintr()
+{
     80001c2e:	60e2                	ld	ra,24(sp)
     80001c30:	6442                	ld	s0,16(sp)
     80001c32:	64a2                	ld	s1,8(sp)
     80001c34:	6105                	addi	sp,sp,32
     80001c36:	8082                	ret
-     (scause & 0xff) == 9){
+  if((sstatus & SSTATUS_SPP) == 0)
     80001c38:	0ff77793          	andi	a5,a4,255
-  if((scause & 0x8000000000000000L) &&
+  
     80001c3c:	46a5                	li	a3,9
     80001c3e:	fed792e3          	bne	a5,a3,80001c22 <devintr+0x12>
-    int irq = plic_claim();
+
     80001c42:	00003097          	auipc	ra,0x3
     80001c46:	536080e7          	jalr	1334(ra) # 80005178 <plic_claim>
     80001c4a:	84aa                	mv	s1,a0
-    if(irq == UART0_IRQ){
+    printf("scause %p\n", scause);
     80001c4c:	47a9                	li	a5,10
     80001c4e:	02f50763          	beq	a0,a5,80001c7c <devintr+0x6c>
-    } else if(irq == VIRTIO0_IRQ){
+    panic("kerneltrap");
     80001c52:	4785                	li	a5,1
     80001c54:	02f50963          	beq	a0,a5,80001c86 <devintr+0x76>
-    return 1;
+
     80001c58:	4505                	li	a0,1
-    } else if(irq){
+
     80001c5a:	d8f1                	beqz	s1,80001c2e <devintr+0x1e>
-      printf("unexpected interrupt irq=%d\n", irq);
+  // give up the CPU if this is a timer interrupt.
     80001c5c:	85a6                	mv	a1,s1
     80001c5e:	00006517          	auipc	a0,0x6
     80001c62:	61a50513          	addi	a0,a0,1562 # 80008278 <states.1715+0x38>
     80001c66:	00004097          	auipc	ra,0x4
     80001c6a:	04c080e7          	jalr	76(ra) # 80005cb2 <printf>
-      plic_complete(irq);
+  w_sstatus(sstatus);
     80001c6e:	8526                	mv	a0,s1
     80001c70:	00003097          	auipc	ra,0x3
     80001c74:	52c080e7          	jalr	1324(ra) # 8000519c <plic_complete>
-    return 1;
+
     80001c78:	4505                	li	a0,1
     80001c7a:	bf55                	j	80001c2e <devintr+0x1e>
-      uartintr();
+    printf("sepc=%p stval=%p\n", r_sepc(), r_stval());
     80001c7c:	00004097          	auipc	ra,0x4
     80001c80:	456080e7          	jalr	1110(ra) # 800060d2 <uartintr>
     80001c84:	b7ed                	j	80001c6e <devintr+0x5e>
-      virtio_disk_intr();
+  }
     80001c86:	00004097          	auipc	ra,0x4
     80001c8a:	9f6080e7          	jalr	-1546(ra) # 8000567c <virtio_disk_intr>
     80001c8e:	b7c5                	j	80001c6e <devintr+0x5e>
-    if(cpuid() == 0){
+  ticks++;
     80001c90:	fffff097          	auipc	ra,0xfffff
     80001c94:	1d6080e7          	jalr	470(ra) # 80000e66 <cpuid>
     80001c98:	c901                	beqz	a0,80001ca8 <devintr+0x98>
   asm volatile("csrr %0, sip" : "=r" (x) );
     80001c9a:	144027f3          	csrr	a5,sip
-    w_sip(r_sip() & ~2);
+// and handle it.
     80001c9e:	9bf5                	andi	a5,a5,-3
   asm volatile("csrw sip, %0" : : "r" (x));
     80001ca0:	14479073          	csrw	sip,a5
-    return 2;
+// 1 if other device,
     80001ca4:	4509                	li	a0,2
     80001ca6:	b761                	j	80001c2e <devintr+0x1e>
-      clockintr();
+  wakeup(&ticks);
     80001ca8:	00000097          	auipc	ra,0x0
     80001cac:	f22080e7          	jalr	-222(ra) # 80001bca <clockintr>
     80001cb0:	b7ed                	j	80001c9a <devintr+0x8a>
@@ -4047,7 +4020,7 @@ devintr()
   asm volatile("csrr %0, sepc" : "=r" (x) );
     80001ce0:	14102773          	csrr	a4,sepc
     80001ce4:	ef98                	sd	a4,24(a5)
-  asm volatile("csrr %0, scause" : "=r" (x) );
+
     80001ce6:	14202773          	csrr	a4,scause
   if(r_scause() == 8){
     80001cea:	47a1                	li	a5,8
@@ -4062,20 +4035,20 @@ devintr()
     80001cfa:	ef1c                	sd	a5,24(a4)
   asm volatile("csrr %0, sstatus" : "=r" (x) );
     80001cfc:	100027f3          	csrr	a5,sstatus
-  w_sstatus(r_sstatus() | SSTATUS_SIE);
+}
     80001d00:	0027e793          	ori	a5,a5,2
   asm volatile("csrw sstatus, %0" : : "r" (x));
     80001d04:	10079073          	csrw	sstatus,a5
     syscall();
     80001d08:	00000097          	auipc	ra,0x0
     80001d0c:	2e0080e7          	jalr	736(ra) # 80001fe8 <syscall>
-  if(p->killed)
+                  p->trapframe->ssp = p->trapframe->sp;
     80001d10:	549c                	lw	a5,40(s1)
     80001d12:	ebc1                	bnez	a5,80001da2 <usertrap+0xf0>
-  usertrapret();
+                  p->trapframe->ss1 = p->trapframe->s1;
     80001d14:	00000097          	auipc	ra,0x0
     80001d18:	e18080e7          	jalr	-488(ra) # 80001b2c <usertrapret>
-}
+                  p->trapframe->sa0 = p->trapframe->a0;
     80001d1c:	60e2                	ld	ra,24(sp)
     80001d1e:	6442                	ld	s0,16(sp)
     80001d20:	64a2                	ld	s1,8(sp)
@@ -4097,13 +4070,13 @@ devintr()
     80001d48:	ecc080e7          	jalr	-308(ra) # 80001c10 <devintr>
     80001d4c:	892a                	mv	s2,a0
     80001d4e:	c501                	beqz	a0,80001d56 <usertrap+0xa4>
-  if(p->killed)
+                  p->trapframe->ssp = p->trapframe->sp;
     80001d50:	549c                	lw	a5,40(s1)
     80001d52:	c3a1                	beqz	a5,80001d92 <usertrap+0xe0>
     80001d54:	a815                	j	80001d88 <usertrap+0xd6>
-  asm volatile("csrr %0, scause" : "=r" (x) );
+
     80001d56:	142025f3          	csrr	a1,scause
-    printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
+              p->currticks++;
     80001d5a:	5890                	lw	a2,48(s1)
     80001d5c:	00006517          	auipc	a0,0x6
     80001d60:	55c50513          	addi	a0,a0,1372 # 800082b8 <states.1715+0x78>
@@ -4111,24 +4084,24 @@ devintr()
     80001d68:	f4e080e7          	jalr	-178(ra) # 80005cb2 <printf>
   asm volatile("csrr %0, sepc" : "=r" (x) );
     80001d6c:	141025f3          	csrr	a1,sepc
-  asm volatile("csrr %0, stval" : "=r" (x) );
+
     80001d70:	14302673          	csrr	a2,stval
-    printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
+              if(p->currticks % p->ticks == 0 && p->handlerlock){
     80001d74:	00006517          	auipc	a0,0x6
     80001d78:	57450513          	addi	a0,a0,1396 # 800082e8 <states.1715+0xa8>
     80001d7c:	00004097          	auipc	ra,0x4
     80001d80:	f36080e7          	jalr	-202(ra) # 80005cb2 <printf>
-    p->killed = 1;
+                  p->handlerlock = 0;
     80001d84:	4785                	li	a5,1
     80001d86:	d49c                	sw	a5,40(s1)
-    exit(-1);
+                  p->trapframe->sgp = p->trapframe->gp;
     80001d88:	557d                	li	a0,-1
     80001d8a:	00000097          	auipc	ra,0x0
     80001d8e:	a28080e7          	jalr	-1496(ra) # 800017b2 <exit>
-  if(which_dev == 2)
+                  p->trapframe->st1 = p->trapframe->t1;
     80001d92:	4789                	li	a5,2
     80001d94:	f8f910e3          	bne	s2,a5,80001d14 <usertrap+0x62>
-    yield();
+                  p->trapframe->st2 = p->trapframe->t2;
     80001d98:	fffff097          	auipc	ra,0xfffff
     80001d9c:	782080e7          	jalr	1922(ra) # 8000151a <yield>
     80001da0:	bf95                	j	80001d14 <usertrap+0x62>
@@ -4137,7 +4110,7 @@ devintr()
     80001da4:	b7d5                	j	80001d88 <usertrap+0xd6>
 
 0000000080001da6 <kerneltrap>:
-{
+  // we're about to switch the destination of traps from
     80001da6:	7179                	addi	sp,sp,-48
     80001da8:	f406                	sd	ra,40(sp)
     80001daa:	f022                	sd	s0,32(sp)
@@ -4149,29 +4122,29 @@ devintr()
     80001db4:	14102973          	csrr	s2,sepc
   asm volatile("csrr %0, sstatus" : "=r" (x) );
     80001db8:	100024f3          	csrr	s1,sstatus
-  asm volatile("csrr %0, scause" : "=r" (x) );
+
     80001dbc:	142029f3          	csrr	s3,scause
-  if((sstatus & SSTATUS_SPP) == 0)
+  w_stvec(TRAMPOLINE + (uservec - trampoline));
     80001dc0:	1004f793          	andi	a5,s1,256
     80001dc4:	cb85                	beqz	a5,80001df4 <kerneltrap+0x4e>
   asm volatile("csrr %0, sstatus" : "=r" (x) );
     80001dc6:	100027f3          	csrr	a5,sstatus
-  return (x & SSTATUS_SIE) != 0;
+
     80001dca:	8b89                	andi	a5,a5,2
-  if(intr_get() != 0)
+  // set up trapframe values that uservec will need when
     80001dcc:	ef85                	bnez	a5,80001e04 <kerneltrap+0x5e>
-  if((which_dev = devintr()) == 0){
+  p->trapframe->kernel_sp = p->kstack + PGSIZE; // process's kernel stack
     80001dce:	00000097          	auipc	ra,0x0
     80001dd2:	e42080e7          	jalr	-446(ra) # 80001c10 <devintr>
     80001dd6:	cd1d                	beqz	a0,80001e14 <kerneltrap+0x6e>
-  if(which_dev == 2 && myproc() != 0 && myproc()->state == RUNNING)
+  // set S Previous Privilege mode to User.
     80001dd8:	4789                	li	a5,2
     80001dda:	06f50a63          	beq	a0,a5,80001e4e <kerneltrap+0xa8>
   asm volatile("csrw sepc, %0" : : "r" (x));
     80001dde:	14191073          	csrw	sepc,s2
   asm volatile("csrw sstatus, %0" : : "r" (x));
     80001de2:	10049073          	csrw	sstatus,s1
-}
+  w_sepc(p->trapframe->epc);
     80001de6:	70a2                	ld	ra,40(sp)
     80001de8:	7402                	ld	s0,32(sp)
     80001dea:	64e2                	ld	s1,24(sp)
@@ -4179,17 +4152,17 @@ devintr()
     80001dee:	69a2                	ld	s3,8(sp)
     80001df0:	6145                	addi	sp,sp,48
     80001df2:	8082                	ret
-    panic("kerneltrap: not from supervisor mode");
+
     80001df4:	00006517          	auipc	a0,0x6
     80001df8:	51450513          	addi	a0,a0,1300 # 80008308 <states.1715+0xc8>
     80001dfc:	00004097          	auipc	ra,0x4
     80001e00:	e6c080e7          	jalr	-404(ra) # 80005c68 <panic>
-    panic("kerneltrap: interrupts enabled");
+  // the process next re-enters the kernel.
     80001e04:	00006517          	auipc	a0,0x6
     80001e08:	52c50513          	addi	a0,a0,1324 # 80008330 <states.1715+0xf0>
     80001e0c:	00004097          	auipc	ra,0x4
     80001e10:	e5c080e7          	jalr	-420(ra) # 80005c68 <panic>
-    printf("scause %p\n", scause);
+  p->trapframe->kernel_trap = (uint64)usertrap;
     80001e14:	85ce                	mv	a1,s3
     80001e16:	00006517          	auipc	a0,0x6
     80001e1a:	53a50513          	addi	a0,a0,1338 # 80008350 <states.1715+0x110>
@@ -4197,19 +4170,19 @@ devintr()
     80001e22:	e94080e7          	jalr	-364(ra) # 80005cb2 <printf>
   asm volatile("csrr %0, sepc" : "=r" (x) );
     80001e26:	141025f3          	csrr	a1,sepc
-  asm volatile("csrr %0, stval" : "=r" (x) );
+
     80001e2a:	14302673          	csrr	a2,stval
-    printf("sepc=%p stval=%p\n", r_sepc(), r_stval());
+  p->trapframe->kernel_hartid = r_tp();         // hartid for cpuid()
     80001e2e:	00006517          	auipc	a0,0x6
     80001e32:	53250513          	addi	a0,a0,1330 # 80008360 <states.1715+0x120>
     80001e36:	00004097          	auipc	ra,0x4
     80001e3a:	e7c080e7          	jalr	-388(ra) # 80005cb2 <printf>
-    panic("kerneltrap");
+
     80001e3e:	00006517          	auipc	a0,0x6
     80001e42:	53a50513          	addi	a0,a0,1338 # 80008378 <states.1715+0x138>
     80001e46:	00004097          	auipc	ra,0x4
     80001e4a:	e22080e7          	jalr	-478(ra) # 80005c68 <panic>
-  if(which_dev == 2 && myproc() != 0 && myproc()->state == RUNNING)
+  // set S Previous Privilege mode to User.
     80001e4e:	fffff097          	auipc	ra,0xfffff
     80001e52:	044080e7          	jalr	68(ra) # 80000e92 <myproc>
     80001e56:	d541                	beqz	a0,80001dde <kerneltrap+0x38>
@@ -4218,7 +4191,7 @@ devintr()
     80001e60:	4d18                	lw	a4,24(a0)
     80001e62:	4791                	li	a5,4
     80001e64:	f6f71de3          	bne	a4,a5,80001dde <kerneltrap+0x38>
-    yield();
+  unsigned long x = r_sstatus();
     80001e68:	fffff097          	auipc	ra,0xfffff
     80001e6c:	6b2080e7          	jalr	1714(ra) # 8000151a <yield>
     80001e70:	b7bd                	j	80001dde <kerneltrap+0x38>
@@ -4453,12 +4426,6 @@ argstr(int n, char *buf, int max)
     80001fe6:	8082                	ret
 
 0000000080001fe8 <syscall>:
-[SYS_sysinfo]    "sysinfo",
-};	
-
-void
-syscall(void)
-{
     80001fe8:	7179                	addi	sp,sp,-48
     80001fea:	f406                	sd	ra,40(sp)
     80001fec:	f022                	sd	s0,32(sp)
@@ -4466,17 +4433,12 @@ syscall(void)
     80001ff0:	e84a                	sd	s2,16(sp)
     80001ff2:	e44e                	sd	s3,8(sp)
     80001ff4:	1800                	addi	s0,sp,48
-  int num;
-  struct proc *p = myproc();
     80001ff6:	fffff097          	auipc	ra,0xfffff
     80001ffa:	e9c080e7          	jalr	-356(ra) # 80000e92 <myproc>
     80001ffe:	84aa                	mv	s1,a0
-
-  num = p->trapframe->a7;
     80002000:	06053903          	ld	s2,96(a0)
     80002004:	0a893783          	ld	a5,168(s2)
     80002008:	0007899b          	sext.w	s3,a5
-  if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
     8000200c:	37fd                	addiw	a5,a5,-1
     8000200e:	4759                	li	a4,22
     80002010:	04f76963          	bltu	a4,a5,80002062 <syscall+0x7a>
@@ -4486,17 +4448,14 @@ syscall(void)
     80002020:	97ba                	add	a5,a5,a4
     80002022:	639c                	ld	a5,0(a5)
     80002024:	cf9d                	beqz	a5,80002062 <syscall+0x7a>
-    p->trapframe->a0 = syscalls[num]();
     80002026:	9782                	jalr	a5
     80002028:	06a93823          	sd	a0,112(s2)
-    if(p->tracemask & (1<<num))
     8000202c:	4785                	li	a5,1
     8000202e:	0137973b          	sllw	a4,a5,s3
     80002032:	4cbc                	lw	a5,88(s1)
     80002034:	8ff9                	and	a5,a5,a4
     80002036:	2781                	sext.w	a5,a5
     80002038:	c7a1                	beqz	a5,80002080 <syscall+0x98>
-		printf("%d: syscall %s -> %d\n",p->pid,syscall_name[num],p->trapframe->a0);
     8000203a:	70b8                	ld	a4,96(s1)
     8000203c:	098e                	slli	s3,s3,0x3
     8000203e:	00006797          	auipc	a5,0x6
@@ -4510,8 +4469,6 @@ syscall(void)
     80002058:	00004097          	auipc	ra,0x4
     8000205c:	c5a080e7          	jalr	-934(ra) # 80005cb2 <printf>
     80002060:	a005                	j	80002080 <syscall+0x98>
-  } else {
-    printf("%d %s: unknown sys call %d\n",
     80002062:	86ce                	mv	a3,s3
     80002064:	16048613          	addi	a2,s1,352
     80002068:	588c                	lw	a1,48(s1)
@@ -4519,13 +4476,9 @@ syscall(void)
     8000206e:	33e50513          	addi	a0,a0,830 # 800083a8 <states.1715+0x168>
     80002072:	00004097          	auipc	ra,0x4
     80002076:	c40080e7          	jalr	-960(ra) # 80005cb2 <printf>
-            p->pid, p->name, num);
-    p->trapframe->a0 = -1;
     8000207a:	70bc                	ld	a5,96(s1)
     8000207c:	577d                	li	a4,-1
     8000207e:	fbb8                	sd	a4,112(a5)
-  }
-}
     80002080:	70a2                	ld	ra,40(sp)
     80002082:	7402                	ld	s0,32(sp)
     80002084:	64e2                	ld	s1,24(sp)
@@ -4536,32 +4489,32 @@ syscall(void)
 
 000000008000208e <sys_exit>:
 #include "proc.h"
-#include "sysinfo.h"
 
 uint64
 sys_exit(void)
 {
+  int n;
     8000208e:	1101                	addi	sp,sp,-32
     80002090:	ec06                	sd	ra,24(sp)
     80002092:	e822                	sd	s0,16(sp)
     80002094:	1000                	addi	s0,sp,32
-  int n;
   if(argint(0, &n) < 0)
+    return -1;
     80002096:	fec40593          	addi	a1,s0,-20
     8000209a:	4501                	li	a0,0
     8000209c:	00000097          	auipc	ra,0x0
     800020a0:	ed8080e7          	jalr	-296(ra) # 80001f74 <argint>
-    return -1;
-    800020a4:	57fd                	li	a5,-1
-  if(argint(0, &n) < 0)
-    800020a6:	00054963          	bltz	a0,800020b8 <sys_exit+0x2a>
   exit(n);
+    800020a4:	57fd                	li	a5,-1
+    return -1;
+    800020a6:	00054963          	bltz	a0,800020b8 <sys_exit+0x2a>
+  return 0;  // not reached
     800020aa:	fec42503          	lw	a0,-20(s0)
     800020ae:	fffff097          	auipc	ra,0xfffff
     800020b2:	704080e7          	jalr	1796(ra) # 800017b2 <exit>
-  return 0;  // not reached
-    800020b6:	4781                	li	a5,0
 }
+    800020b6:	4781                	li	a5,0
+
     800020b8:	853e                	mv	a0,a5
     800020ba:	60e2                	ld	ra,24(sp)
     800020bc:	6442                	ld	s0,16(sp)
@@ -4569,18 +4522,18 @@ sys_exit(void)
     800020c0:	8082                	ret
 
 00000000800020c2 <sys_getpid>:
-
 uint64
 sys_getpid(void)
 {
+  return myproc()->pid;
     800020c2:	1141                	addi	sp,sp,-16
     800020c4:	e406                	sd	ra,8(sp)
     800020c6:	e022                	sd	s0,0(sp)
     800020c8:	0800                	addi	s0,sp,16
-  return myproc()->pid;
+}
     800020ca:	fffff097          	auipc	ra,0xfffff
     800020ce:	dc8080e7          	jalr	-568(ra) # 80000e92 <myproc>
-}
+
     800020d2:	5908                	lw	a0,48(a0)
     800020d4:	60a2                	ld	ra,8(sp)
     800020d6:	6402                	ld	s0,0(sp)
@@ -4588,103 +4541,103 @@ sys_getpid(void)
     800020da:	8082                	ret
 
 00000000800020dc <sys_fork>:
-
 uint64
 sys_fork(void)
 {
+  return fork();
     800020dc:	1141                	addi	sp,sp,-16
     800020de:	e406                	sd	ra,8(sp)
     800020e0:	e022                	sd	s0,0(sp)
     800020e2:	0800                	addi	s0,sp,16
-  return fork();
+}
     800020e4:	fffff097          	auipc	ra,0xfffff
     800020e8:	17c080e7          	jalr	380(ra) # 80001260 <fork>
-}
+
     800020ec:	60a2                	ld	ra,8(sp)
     800020ee:	6402                	ld	s0,0(sp)
     800020f0:	0141                	addi	sp,sp,16
     800020f2:	8082                	ret
 
 00000000800020f4 <sys_wait>:
-
 uint64
 sys_wait(void)
 {
+  uint64 p;
     800020f4:	1101                	addi	sp,sp,-32
     800020f6:	ec06                	sd	ra,24(sp)
     800020f8:	e822                	sd	s0,16(sp)
     800020fa:	1000                	addi	s0,sp,32
-  uint64 p;
   if(argaddr(0, &p) < 0)
+    return -1;
     800020fc:	fe840593          	addi	a1,s0,-24
     80002100:	4501                	li	a0,0
     80002102:	00000097          	auipc	ra,0x0
     80002106:	e94080e7          	jalr	-364(ra) # 80001f96 <argaddr>
     8000210a:	87aa                	mv	a5,a0
-    return -1;
-    8000210c:	557d                	li	a0,-1
-  if(argaddr(0, &p) < 0)
-    8000210e:	0007c863          	bltz	a5,8000211e <sys_wait+0x2a>
   return wait(p);
+    8000210c:	557d                	li	a0,-1
+    return -1;
+    8000210e:	0007c863          	bltz	a5,8000211e <sys_wait+0x2a>
+}
     80002112:	fe843503          	ld	a0,-24(s0)
     80002116:	fffff097          	auipc	ra,0xfffff
     8000211a:	4a4080e7          	jalr	1188(ra) # 800015ba <wait>
-}
+
     8000211e:	60e2                	ld	ra,24(sp)
     80002120:	6442                	ld	s0,16(sp)
     80002122:	6105                	addi	sp,sp,32
     80002124:	8082                	ret
 
 0000000080002126 <sys_sbrk>:
-
 uint64
 sys_sbrk(void)
 {
+  int addr;
     80002126:	7179                	addi	sp,sp,-48
     80002128:	f406                	sd	ra,40(sp)
     8000212a:	f022                	sd	s0,32(sp)
     8000212c:	ec26                	sd	s1,24(sp)
     8000212e:	1800                	addi	s0,sp,48
-  int addr;
   int n;
 
   if(argint(0, &n) < 0)
+    return -1;
     80002130:	fdc40593          	addi	a1,s0,-36
     80002134:	4501                	li	a0,0
     80002136:	00000097          	auipc	ra,0x0
     8000213a:	e3e080e7          	jalr	-450(ra) # 80001f74 <argint>
     8000213e:	87aa                	mv	a5,a0
-    return -1;
-    80002140:	557d                	li	a0,-1
-  if(argint(0, &n) < 0)
-    80002142:	0207c063          	bltz	a5,80002162 <sys_sbrk+0x3c>
   addr = myproc()->sz;
+    80002140:	557d                	li	a0,-1
+    return -1;
+    80002142:	0207c063          	bltz	a5,80002162 <sys_sbrk+0x3c>
+  if(growproc(n) < 0)
     80002146:	fffff097          	auipc	ra,0xfffff
     8000214a:	d4c080e7          	jalr	-692(ra) # 80000e92 <myproc>
     8000214e:	4524                	lw	s1,72(a0)
-  if(growproc(n) < 0)
+    return -1;
     80002150:	fdc42503          	lw	a0,-36(s0)
     80002154:	fffff097          	auipc	ra,0xfffff
     80002158:	098080e7          	jalr	152(ra) # 800011ec <growproc>
     8000215c:	00054863          	bltz	a0,8000216c <sys_sbrk+0x46>
-    return -1;
   return addr;
-    80002160:	8526                	mv	a0,s1
 }
+    80002160:	8526                	mv	a0,s1
+
     80002162:	70a2                	ld	ra,40(sp)
     80002164:	7402                	ld	s0,32(sp)
     80002166:	64e2                	ld	s1,24(sp)
     80002168:	6145                	addi	sp,sp,48
     8000216a:	8082                	ret
-    return -1;
+  return addr;
     8000216c:	557d                	li	a0,-1
     8000216e:	bfd5                	j	80002162 <sys_sbrk+0x3c>
 
 0000000080002170 <sys_sleep>:
-
 uint64
 sys_sleep(void)
 {
+  int n;
     80002170:	7139                	addi	sp,sp,-64
     80002172:	fc06                	sd	ra,56(sp)
     80002174:	f822                	sd	s0,48(sp)
@@ -4692,55 +4645,55 @@ sys_sleep(void)
     80002178:	f04a                	sd	s2,32(sp)
     8000217a:	ec4e                	sd	s3,24(sp)
     8000217c:	0080                	addi	s0,sp,64
-  int n;
   uint ticks0;
 
   if(argint(0, &n) < 0)
+    return -1;
     8000217e:	fcc40593          	addi	a1,s0,-52
     80002182:	4501                	li	a0,0
     80002184:	00000097          	auipc	ra,0x0
     80002188:	df0080e7          	jalr	-528(ra) # 80001f74 <argint>
-    return -1;
-    8000218c:	57fd                	li	a5,-1
-  if(argint(0, &n) < 0)
-    8000218e:	06054563          	bltz	a0,800021f8 <sys_sleep+0x88>
   acquire(&tickslock);
+    8000218c:	57fd                	li	a5,-1
+    return -1;
+    8000218e:	06054563          	bltz	a0,800021f8 <sys_sleep+0x88>
+  ticks0 = ticks;
     80002192:	0000d517          	auipc	a0,0xd
     80002196:	eee50513          	addi	a0,a0,-274 # 8000f080 <tickslock>
     8000219a:	00004097          	auipc	ra,0x4
     8000219e:	018080e7          	jalr	24(ra) # 800061b2 <acquire>
-  ticks0 = ticks;
+  while(ticks - ticks0 < n){
     800021a2:	00007917          	auipc	s2,0x7
     800021a6:	e7692903          	lw	s2,-394(s2) # 80009018 <ticks>
-  while(ticks - ticks0 < n){
+    if(myproc()->killed){
     800021aa:	fcc42783          	lw	a5,-52(s0)
     800021ae:	cf85                	beqz	a5,800021e6 <sys_sleep+0x76>
-    if(myproc()->killed){
       release(&tickslock);
       return -1;
     }
     sleep(&ticks, &tickslock);
+  }
     800021b0:	0000d997          	auipc	s3,0xd
     800021b4:	ed098993          	addi	s3,s3,-304 # 8000f080 <tickslock>
     800021b8:	00007497          	auipc	s1,0x7
     800021bc:	e6048493          	addi	s1,s1,-416 # 80009018 <ticks>
-    if(myproc()->killed){
+      release(&tickslock);
     800021c0:	fffff097          	auipc	ra,0xfffff
     800021c4:	cd2080e7          	jalr	-814(ra) # 80000e92 <myproc>
     800021c8:	551c                	lw	a5,40(a0)
     800021ca:	ef9d                	bnez	a5,80002208 <sys_sleep+0x98>
-    sleep(&ticks, &tickslock);
+  }
     800021cc:	85ce                	mv	a1,s3
     800021ce:	8526                	mv	a0,s1
     800021d0:	fffff097          	auipc	ra,0xfffff
     800021d4:	386080e7          	jalr	902(ra) # 80001556 <sleep>
-  while(ticks - ticks0 < n){
+    if(myproc()->killed){
     800021d8:	409c                	lw	a5,0(s1)
     800021da:	412787bb          	subw	a5,a5,s2
     800021de:	fcc42703          	lw	a4,-52(s0)
     800021e2:	fce7efe3          	bltu	a5,a4,800021c0 <sys_sleep+0x50>
-  }
   release(&tickslock);
+  backtrace();
     800021e6:	0000d517          	auipc	a0,0xd
     800021ea:	e9a50513          	addi	a0,a0,-358 # 8000f080 <tickslock>
     800021ee:	00004097          	auipc	ra,0x4
@@ -4756,12 +4709,12 @@ sys_sleep(void)
     80002202:	69e2                	ld	s3,24(sp)
     80002204:	6121                	addi	sp,sp,64
     80002206:	8082                	ret
-      release(&tickslock);
+      return -1;
     80002208:	0000d517          	auipc	a0,0xd
     8000220c:	e7850513          	addi	a0,a0,-392 # 8000f080 <tickslock>
     80002210:	00004097          	auipc	ra,0x4
     80002214:	056080e7          	jalr	86(ra) # 80006266 <release>
-      return -1;
+    }
     80002218:	57fd                	li	a5,-1
     8000221a:	bff9                	j	800021f8 <sys_sleep+0x88>
 
@@ -4835,32 +4788,32 @@ sys_uptime(void)
 
 0000000080002290 <sys_trace>:
 
-// set the tracemask
 uint64
-sys_trace(void){
+sys_sigalarm(void){
+    printf("sigalarm\n");
     80002290:	7179                	addi	sp,sp,-48
     80002292:	f406                	sd	ra,40(sp)
     80002294:	f022                	sd	s0,32(sp)
     80002296:	ec26                	sd	s1,24(sp)
     80002298:	1800                	addi	s0,sp,48
-	int n;
-	if(argint(0,&n) < 0)
+    int ticks;
+    uint64 handler;
     8000229a:	fdc40593          	addi	a1,s0,-36
     8000229e:	4501                	li	a0,0
     800022a0:	00000097          	auipc	ra,0x0
     800022a4:	cd4080e7          	jalr	-812(ra) # 80001f74 <argint>
-		return -1;
+    if(argint(0,&ticks) < 0 || argaddr(1,&handler) < 0)
     800022a8:	57fd                	li	a5,-1
-	if(argint(0,&n) < 0)
+    uint64 handler;
     800022aa:	00054a63          	bltz	a0,800022be <sys_trace+0x2e>
-	myproc()->tracemask = n;
+        return -1;
     800022ae:	fdc42483          	lw	s1,-36(s0)
     800022b2:	fffff097          	auipc	ra,0xfffff
     800022b6:	be0080e7          	jalr	-1056(ra) # 80000e92 <myproc>
     800022ba:	cd24                	sw	s1,88(a0)
-	return 0;
+    myproc()->ticks = ticks;
     800022bc:	4781                	li	a5,0
-}
+    myproc()->handler = handler;
     800022be:	853e                	mv	a0,a5
     800022c0:	70a2                	ld	ra,40(sp)
     800022c2:	7402                	ld	s0,32(sp)
@@ -4869,40 +4822,40 @@ sys_trace(void){
     800022c8:	8082                	ret
 
 00000000800022ca <sys_sysinfo>:
-
-// get the freemem and nproc
+    return 0;
+}
 uint64
-sys_sysinfo(void){
+sys_sigreturn(void){
     800022ca:	7139                	addi	sp,sp,-64
     800022cc:	fc06                	sd	ra,56(sp)
     800022ce:	f822                	sd	s0,48(sp)
     800022d0:	f426                	sd	s1,40(sp)
     800022d2:	0080                	addi	s0,sp,64
-	uint64 addr; // user pointer to sysinfo
-	if(argaddr(0,&addr) < 0)
+    printf("sigreturn\n");
+    struct proc* p = myproc();
     800022d4:	fd840593          	addi	a1,s0,-40
     800022d8:	4501                	li	a0,0
     800022da:	00000097          	auipc	ra,0x0
     800022de:	cbc080e7          	jalr	-836(ra) # 80001f96 <argaddr>
     800022e2:	87aa                	mv	a5,a0
-		return -1;
+    p->handlerlock = 1;
     800022e4:	557d                	li	a0,-1
-	if(argaddr(0,&addr) < 0)
+    struct proc* p = myproc();
     800022e6:	0207ce63          	bltz	a5,80002322 <sys_sysinfo+0x58>
-	struct sysinfo si;
-	struct proc *p = myproc();
+    p->trapframe->epc = p->trapframe->sepc;
+    p->trapframe->ra = p->trapframe->sra;
     800022ea:	fffff097          	auipc	ra,0xfffff
     800022ee:	ba8080e7          	jalr	-1112(ra) # 80000e92 <myproc>
     800022f2:	84aa                	mv	s1,a0
-	si.freemem = getfreemem();
+    p->trapframe->sp = p->trapframe->ssp;
     800022f4:	ffffe097          	auipc	ra,0xffffe
     800022f8:	e84080e7          	jalr	-380(ra) # 80000178 <getfreemem>
     800022fc:	fca43423          	sd	a0,-56(s0)
-	si.nproc = getnproc();
+    p->trapframe->gp = p->trapframe->sgp;
     80002300:	fffff097          	auipc	ra,0xfffff
     80002304:	754080e7          	jalr	1876(ra) # 80001a54 <getnproc>
     80002308:	fca43823          	sd	a0,-48(s0)
-	if(copyout(p->pagetable,addr,(char *)&si,sizeof(si)) < 0)
+    p->trapframe->tp = p->trapframe->stp;
     8000230c:	46c1                	li	a3,16
     8000230e:	fc840613          	addi	a2,s0,-56
     80002312:	fd843583          	ld	a1,-40(s0)
@@ -4910,9 +4863,9 @@ sys_sysinfo(void){
     80002318:	fffff097          	auipc	ra,0xfffff
     8000231c:	83c080e7          	jalr	-1988(ra) # 80000b54 <copyout>
     80002320:	957d                	srai	a0,a0,0x3f
-		return -1;
-	return 0;
-}
+    p->trapframe->t0 = p->trapframe->st0;
+    p->trapframe->t1 = p->trapframe->st1;
+    p->trapframe->t2 = p->trapframe->st2;
     80002322:	70e2                	ld	ra,56(sp)
     80002324:	7442                	ld	s0,48(sp)
     80002326:	74a2                	ld	s1,40(sp)
@@ -11524,9 +11477,9 @@ timerinit()
     80005786:	ef1c                	sd	a5,24(a4)
   scratch[4] = interval;
     80005788:	f310                	sd	a2,32(a4)
-  asm volatile("csrw mscratch, %0" : : "r" (x));
+  asm volatile("csrw sscratch, %0" : : "r" (x));
     8000578a:	34071073          	csrw	mscratch,a4
-  asm volatile("csrw mtvec, %0" : : "r" (x));
+  return x;
     8000578e:	00000797          	auipc	a5,0x0
     80005792:	97278793          	addi	a5,a5,-1678 # 80005100 <timervec>
     80005796:	30579073          	csrw	mtvec,a5
@@ -11576,7 +11529,7 @@ timerinit()
     800057d8:	ffffb797          	auipc	a5,0xffffb
     800057dc:	b9878793          	addi	a5,a5,-1128 # 80000370 <main>
     800057e0:	34179073          	csrw	mepc,a5
-  asm volatile("csrw satp, %0" : : "r" (x));
+
     800057e4:	4781                	li	a5,0
     800057e6:	18079073          	csrw	satp,a5
   asm volatile("csrw medeleg, %0" : : "r" (x));
@@ -11591,11 +11544,11 @@ timerinit()
     800057fa:	2227e793          	ori	a5,a5,546
   asm volatile("csrw sie, %0" : : "r" (x));
     800057fe:	10479073          	csrw	sie,a5
-  asm volatile("csrw pmpaddr0, %0" : : "r" (x));
+  asm volatile("csrw pmpcfg0, %0" : : "r" (x));
     80005802:	57fd                	li	a5,-1
     80005804:	83a9                	srli	a5,a5,0xa
     80005806:	3b079073          	csrw	pmpaddr0,a5
-  asm volatile("csrw pmpcfg0, %0" : : "r" (x));
+  asm volatile("csrw mtvec, %0" : : "r" (x));
     8000580a:	47bd                	li	a5,15
     8000580c:	3a079073          	csrw	pmpcfg0,a5
   timerinit();
@@ -11605,7 +11558,7 @@ timerinit()
     80005818:	f14027f3          	csrr	a5,mhartid
   w_tp(id);
     8000581c:	2781                	sext.w	a5,a5
-  asm volatile("mv tp, %0" : : "r" (x));
+  return x;
     8000581e:	823e                	mv	tp,a5
   asm volatile("mret");
     80005820:	30200073          	mret
@@ -12834,7 +12787,7 @@ push_off(void)
   asm volatile("csrr %0, sstatus" : "=r" (x) );
     80006170:	100024f3          	csrr	s1,sstatus
     80006174:	100027f3          	csrr	a5,sstatus
-  w_sstatus(r_sstatus() & ~SSTATUS_SIE);
+}
     80006178:	9bf5                	andi	a5,a5,-3
   asm volatile("csrw sstatus, %0" : : "r" (x));
     8000617a:	10079073          	csrw	sstatus,a5
@@ -12862,7 +12815,7 @@ push_off(void)
     mycpu()->intena = old;
     800061a2:	ffffb097          	auipc	ra,0xffffb
     800061a6:	cd4080e7          	jalr	-812(ra) # 80000e76 <mycpu>
-  return (x & SSTATUS_SIE) != 0;
+
     800061aa:	8085                	srli	s1,s1,0x1
     800061ac:	8885                	andi	s1,s1,1
     800061ae:	dd64                	sw	s1,124(a0)
@@ -12924,7 +12877,7 @@ pop_off(void)
     80006212:	c68080e7          	jalr	-920(ra) # 80000e76 <mycpu>
   asm volatile("csrr %0, sstatus" : "=r" (x) );
     80006216:	100027f3          	csrr	a5,sstatus
-  return (x & SSTATUS_SIE) != 0;
+
     8000621a:	8b89                	andi	a5,a5,2
   if(intr_get())
     8000621c:	e78d                	bnez	a5,80006246 <pop_off+0x40>
@@ -12943,7 +12896,7 @@ pop_off(void)
     80006230:	c799                	beqz	a5,8000623e <pop_off+0x38>
   asm volatile("csrr %0, sstatus" : "=r" (x) );
     80006232:	100027f3          	csrr	a5,sstatus
-  w_sstatus(r_sstatus() | SSTATUS_SIE);
+}
     80006236:	0027e793          	ori	a5,a5,2
   asm volatile("csrw sstatus, %0" : : "r" (x));
     8000623a:	10079073          	csrw	sstatus,a5
