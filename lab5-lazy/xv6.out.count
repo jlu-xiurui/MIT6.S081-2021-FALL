@@ -1,0 +1,23 @@
+
+xv6 kernel is booting
+
+hart 2 starting
+hart 1 starting
+page table 0x0000000087f64000
+ ..0: pte 0x0000000021fd8001 pa 0x0000000087f60000
+ .. ..0: pte 0x0000000021fd7c01 pa 0x0000000087f5f000
+ .. .. ..0: pte 0x0000000021fd841f pa 0x0000000087f61000
+ .. .. ..1: pte 0x0000000021fd780f pa 0x0000000087f5e000
+ .. .. ..2: pte 0x0000000021fd741f pa 0x0000000087f5d000
+ ..255: pte 0x0000000021fd8c01 pa 0x0000000087f63000
+ .. ..511: pte 0x0000000021fd8801 pa 0x0000000087f62000
+ .. .. ..510: pte 0x0000000021fed807 pa 0x0000000087fb6000
+ .. .. ..511: pte 0x0000000020001c0b pa 0x0000000080007000
+init: starting sh
+$ stats
+copyin: 0
+copyinstr: 0
+$ stats
+copyin: 0
+copyinstr: 0
+$ qemu-system-riscv64: terminating on signal 15 from pid 2679 (make)
