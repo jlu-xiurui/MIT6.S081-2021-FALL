@@ -1,0 +1,83 @@
+
+xv6 kernel is booting
+
+idx max = 32768hart 2 starting
+hart 1 starting
+init: starting sh
+$ usertests
+usertests starting
+test MAXVAplus: OK
+test manywrites: OK
+test execout: here
+OK
+test copyin: OK
+test copyout: 0x0000000080000000
+0xFFFFFFFFFFFFFFFF
+OK
+test copyinstr1: OK
+test copyinstr2: OK
+test copyinstr3: OK
+test rwsbrk: OK
+test truncate1: OK
+test truncate2: OK
+test truncate3: OK
+test reparent2: OK
+test pgbug: OK
+test sbrkbugs: usertrap(): unexpected scause 0x000000000000000c pid=3260
+            sepc=0x00000000000058f8 stval=0x00000000000058f8
+usertrap(): unexpected scause 0x000000000000000c pid=3261
+            sepc=0x00000000000058f8 stval=0x00000000000058f8
+OK
+test badarg: OK
+test reparent: OK
+test twochildren: OK
+test forkfork: OK
+test forkforkfork: OK
+test argptest: OK
+test createdelete: OK
+test linkunlink: OK
+test linktest: OK
+test unlinkread: OK
+test concreate: OK
+test subdir: OK
+test fourfiles: OK
+test sharedfd: OK
+test dirtest: OK
+test exectest: OK
+test bigargtest: OK
+test bigwrite: OK
+test bsstest: OK
+test sbrkbasic: OK
+test sbrkmuch: OK
+test kernmem: OK
+test sbrkfail: usertrap(): unexpected scause 0x000000000000000d pid=6292
+            sepc=0x000000000000451e stval=0x0000000000012000
+OK
+test sbrkarg: OK
+test sbrklast: OK
+test sbrk8000: OK
+test validatetest: OK
+test stacktest: usertrap(): unexpected scause 0x000000000000000d pid=6298
+            sepc=0x0000000000002392 stval=0x000000000000fb50
+OK
+test opentest: OK
+test writetest: OK
+test writebig: OK
+test createtest: OK
+test openiput: OK
+test exitiput: OK
+test iput: OK
+test mem: OK
+test pipe1: OK
+test killstatus: OK
+test preempt: kill... wait... OK
+test exitwait: OK
+test rmdot: OK
+test fourteen: OK
+test bigfile: OK
+test dirfile: OK
+test iref: OK
+test forktest: OK
+test bigdir: OK
+ALL TESTS PASSED
+$ qemu-system-riscv64: terminating on signal 15 from pid 16344 (make)
