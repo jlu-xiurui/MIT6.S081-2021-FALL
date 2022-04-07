@@ -13,3 +13,7 @@ MIT 6.S081 2021 FALL配套实验的代码及笔记，每个实验的对应源码
 ### 4. Lab Trap [lab4-note](https://github.com/jlu-xiurui/MIT6.S081-2021-FALL/edit/master/lab4-traps/Trap-note.md)
 
 在本实验中需要在xv6中实现一些有关中断处理或RISC-V汇编语句的功能，需要对基本的RISC-V语句、用户中断处理过程有一定的理解，总体难度不大。
+
+### 5. Lab Lazy [lab5-lazy](https://github.com/jlu-xiurui/MIT6.S081-2021-FALL/blob/master/lab5-lazy/Lab%20Lazy.md)
+
+在本实验中，需要为xv6增加内存分配的延时分配功能，即在调用 sbrk 时不直接分配内存，仅在对应的虚拟内存被使用时才为其分配物理内存，实验所需的代码量很少，但有很多细节需要被注意。
