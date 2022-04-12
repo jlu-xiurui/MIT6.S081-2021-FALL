@@ -18,6 +18,10 @@ MIT 6.S081 2021 FALL配套实验的代码及笔记，每个实验的对应源码
 
 在本实验中，需要为xv6增加内存分配的延时分配功能，即在调用 sbrk 时不直接分配内存，仅在对应的虚拟内存被使用时才为其分配物理内存，实验所需的代码量很少，但有很多细节需要被注意。
 
-### 5. Lab Cow [lab6-Cow](https://github.com/jlu-xiurui/MIT6.S081-2021-FALL/blob/master/lab6-cow/Lab%20Copy-on-Write%20Fork.md) 
+### 6. Lab Cow [lab6-Cow](https://github.com/jlu-xiurui/MIT6.S081-2021-FALL/blob/master/lab6-cow/Lab%20Copy-on-Write%20Fork.md) 
 
 本实验要求为xv6系统增加 `fork` 函数写时复刻功能，即当 `fork` 完成时父子进程共享同一组只读物理内存页。当进程试图读写这些物理内存时，为该进程重新分配新的物理内存页，并将共享物理内存页的内容拷贝至新内存页。该实验与 `Lazy` 实验内容类似，但难度略微更大一些。
+
+### 7. Lab Thread [lab7-thread](https://github.com/jlu-xiurui/MIT6.S081-2021-FALL/edit/master/lab7-thread/Lab%20Thread.md) 
+
+本实验分为三个部分，首先需要我们为xv6实现用户级线程包，以加深对线程上下文切换的理解。然后，需要我们利用UNIX接口实现简易的并发哈希表及 `barrier` 屏障功能，以提升线程同步及线程安全编程能力。
