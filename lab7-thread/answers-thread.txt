@@ -1,0 +1,33 @@
+         pthread_mutex_init(&hashlock[i],NULL);
+ 26 }
+ 27 double
+ 28 now()
+ 29 {
+ 30  struct timeval tv;
+ 31  gettimeofday(&tv, 0);
+ 32  return tv.tv_sec + tv.tv_usec / 1000000.0;
+ 33 }
+ 34 
+ 35 static void 
+ 36 insert(int key, int value, int i)
+ 37 { 
+ 38   struct entry *e = malloc(sizeof(struct entry));
+ 39   e->key = key;
+ 40   e->value = value;
+ 41   pthread_mutex_lock(&hashlock[i]);
+ 42   e->next = table[i];
+ 43   table[i] = e;
+ 44   pthread_mutex_unlock(&hashlock[i]);
+ 45 }
+ 46 
+ 47 static 
+ 48 void put(int key, int value)
+ 49 {
+ 50   int i = key % NBUCKET;
+ 51 
+ 52   // is the key already present?
+ 53   pthread_mutex_lock(&hashlock[i]);
+ 54   struct entry *e = table[i];
+ 55   for (; e != 0; e = e->next) {
+ 56     if (e->key == key)
+
