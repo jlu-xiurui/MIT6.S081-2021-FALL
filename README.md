@@ -4,7 +4,7 @@ MIT 6.S081 2021 FALL配套实验的代码及笔记，每个实验的对应源码
 ### 1. Lab Utilities [Lab1-note](https://github.com/jlu-xiurui/MIT6.S081-2021-FALL/blob/master/lab1-util/Utilities-note.md)
 本实验要求实验者基于xv6的函数接口，实现一系列的用户级程序，需要实验者对于进程行为（如fork,exec,wait对进程的影响等）有一定的理解，总体难度不大。
 
-### 2. Lab Syscall [Lab2-note](https://github.com/jlu-xiurui/MIT6.S081/blob/main/lab2-syscall/README.md)
+### 2. Lab Syscall [Lab2-note](https://github.com/jlu-xiurui/MIT6.S081-2021-FALL/blob/master/lab2-syscall/README.md)
 本实验需要为xv6操作系统添加两个新的系统调用，以帮助实验者进一步了解和掌握用户层调用系统调用时，内核所完成的任务及其细节。 
 
 ### 3. Lab Pgtbl [lab3-note](https://github.com/jlu-xiurui/MIT6.S081-2021-FALL/blob/master/lab3-pgtbl/README.md)
@@ -17,3 +17,7 @@ MIT 6.S081 2021 FALL配套实验的代码及笔记，每个实验的对应源码
 ### 5. Lab Lazy [lab5-lazy](https://github.com/jlu-xiurui/MIT6.S081-2021-FALL/blob/master/lab5-lazy/Lab%20Lazy.md)
 
 在本实验中，需要为xv6增加内存分配的延时分配功能，即在调用 sbrk 时不直接分配内存，仅在对应的虚拟内存被使用时才为其分配物理内存，实验所需的代码量很少，但有很多细节需要被注意。
+
+### 5. Lab Cow [lab6-Cow](https://github.com/jlu-xiurui/MIT6.S081-2021-FALL/blob/master/lab6-cow/Lab%20Copy-on-Write%20Fork.md) 
+
+本实验要求为xv6系统增加 `fork` 函数写时复刻功能，即当 `fork` 完成时父子进程共享同一组只读物理内存页。当进程试图读写这些物理内存时，为该进程重新分配新的物理内存页，并将共享物理内存页的内容拷贝至新内存页。该实验与 `Lazy` 实验内容类似，但难度略微更大一些。
