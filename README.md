@@ -10,7 +10,7 @@ MIT 6.S081 2021 FALL配套实验的代码及笔记，每个实验的对应源码
 ### 3. Lab Pgtbl [lab3-note](https://github.com/jlu-xiurui/MIT6.S081-2021-FALL/blob/master/lab3-pgtbl/README.md)
 在本实验中，要求实验者在xv6中增加一些有关页表操作的机制，以在此过程中加深实验者对于虚拟地址与物理地址、页表映射过程的理解。由于2021Fall与2020Fall的pgtbl实验差别较大，在这里对两者均进行了完成。总体而言，2020Fall的难度要远大于2021Fall。如果有时间的话，强烈建议在两者间选择2020Fall进行完成，以获得对于页表机制更加深刻、全面的理解。 
 
-### 4. Lab Trap [lab4-note](https://github.com/jlu-xiurui/MIT6.S081-2021-FALL/edit/master/lab4-traps/Trap-note.md)
+### 4. Lab Trap [lab4-note](https://github.com/jlu-xiurui/MIT6.S081-2021-FALL/blob/master/lab4-traps/Trap-note.md)
 
 在本实验中需要在xv6中实现一些有关中断处理或RISC-V汇编语句的功能，需要对基本的RISC-V语句、用户中断处理过程有一定的理解，总体难度不大。
 
