@@ -1,0 +1,221 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.9~svn20110310	//
+Align	umalloc.c	/^typedef long Align;$/;"	t	file:
+BACK	sh.c	12;"	d	file:
+BUFSZ	usertests.c	20;"	d	file:
+EXEC	sh.c	8;"	d	file:
+FREE	uthread.c	6;"	d	file:
+Header	umalloc.c	/^typedef union header Header;$/;"	t	typeref:union:header	file:
+LIST	sh.c	11;"	d	file:
+MAXARGS	sh.c	14;"	d	file:
+MAXVAplus	usertests.c	/^MAXVAplus(char *s)$/;"	f
+MAX_THREAD	uthread.c	11;"	d	file:
+N	forktest.c	8;"	d	file:
+PIPE	sh.c	10;"	d	file:
+REDIR	sh.c	9;"	d	file:
+RUNNABLE	uthread.c	8;"	d	file:
+RUNNING	uthread.c	7;"	d	file:
+STACK_SIZE	uthread.c	10;"	d	file:
+a_n	uthread.c	/^volatile int a_n, b_n, c_n;$/;"	v
+a_started	uthread.c	/^volatile int a_started, b_started, c_started;$/;"	v
+all_thread	uthread.c	/^struct thread all_thread[MAX_THREAD];$/;"	v	typeref:struct:thread
+argptest	usertests.c	/^void argptest(char *s)$/;"	f
+argv	init.c	/^char *argv[] = { "sh", 0 };$/;"	v
+argv	initcode.S	/^argv:$/;"	l
+argv	sh.c	/^  char *argv[MAXARGS];$/;"	m	struct:execcmd	file:
+atoi	ulib.c	/^atoi(const char *s)$/;"	f
+b_n	uthread.c	/^volatile int a_n, b_n, c_n;$/;"	v
+b_started	uthread.c	/^volatile int a_started, b_started, c_started;$/;"	v
+backcmd	sh.c	/^backcmd(struct cmd *subcmd)$/;"	f
+backcmd	sh.c	/^struct backcmd {$/;"	s	file:
+badarg	usertests.c	/^badarg(char *s)$/;"	f
+badwrite	usertests.c	/^badwrite(char *s)$/;"	f
+base	umalloc.c	/^static Header base;$/;"	v	file:
+bigargtest	usertests.c	/^bigargtest(char *s)$/;"	f
+bigdir	usertests.c	/^bigdir(char *s)$/;"	f
+bigfile	usertests.c	/^bigfile(char *s)$/;"	f
+bigwrite	usertests.c	/^bigwrite(char *s)$/;"	f
+bsstest	usertests.c	/^bsstest(char *s)$/;"	f
+buf	cat.c	/^char buf[512];$/;"	v
+buf	grep.c	/^char buf[1024];$/;"	v
+buf	usertests.c	/^char buf[BUFSZ];$/;"	v
+buf	wc.c	/^char buf[512];$/;"	v
+c_n	uthread.c	/^volatile int a_n, b_n, c_n;$/;"	v
+c_started	uthread.c	/^volatile int a_started, b_started, c_started;$/;"	v
+cat	cat.c	/^cat(int fd)$/;"	f
+cmd	sh.c	/^  struct cmd *cmd;$/;"	m	struct:backcmd	typeref:struct:backcmd::cmd	file:
+cmd	sh.c	/^  struct cmd *cmd;$/;"	m	struct:redircmd	typeref:struct:redircmd::cmd	file:
+cmd	sh.c	/^struct cmd {$/;"	s	file:
+concreate	usertests.c	/^concreate(char *s)$/;"	f
+copyin	usertests.c	/^copyin(char *s)$/;"	f
+copyinstr1	usertests.c	/^copyinstr1(char *s)$/;"	f
+copyinstr2	usertests.c	/^copyinstr2(char *s)$/;"	f
+copyinstr3	usertests.c	/^copyinstr3(char *s)$/;"	f
+copyout	usertests.c	/^copyout(char *s)$/;"	f
+countfree	usertests.c	/^countfree()$/;"	f
+createdelete	usertests.c	/^createdelete(char *s)$/;"	f
+createtest	usertests.c	/^createtest(char *s)$/;"	f
+current_thread	uthread.c	/^struct thread *current_thread;$/;"	v	typeref:struct:thread
+digits	printf.c	/^static char digits[] = "0123456789ABCDEF";$/;"	v	file:
+dirfile	usertests.c	/^dirfile(char *s)$/;"	f
+dirtest	usertests.c	/^void dirtest(char *s)$/;"	f
+do_rand	grind.c	/^do_rand(unsigned long *ctx)$/;"	f
+eargv	sh.c	/^  char *eargv[MAXARGS];$/;"	m	struct:execcmd	file:
+efile	sh.c	/^  char *efile;$/;"	m	struct:redircmd	file:
+entry	usys.pl	/^sub entry {$/;"	s
+execcmd	sh.c	/^execcmd(void)$/;"	f
+execcmd	sh.c	/^struct execcmd {$/;"	s	file:
+execout	usertests.c	/^execout(char *s)$/;"	f
+exectest	usertests.c	/^exectest(char *s)$/;"	f
+exit	initcode.S	/^exit:$/;"	l
+exitiputtest	usertests.c	/^exitiputtest(char *s)$/;"	f
+exitwait	usertests.c	/^exitwait(char *s)$/;"	f
+fd	sh.c	/^  int fd;$/;"	m	struct:redircmd	file:
+file	sh.c	/^  char *file;$/;"	m	struct:redircmd	file:
+fmtname	ls.c	/^fmtname(char *path)$/;"	f
+fork1	sh.c	/^fork1(void)$/;"	f
+forkfork	usertests.c	/^forkfork(char *s)$/;"	f
+forkforkfork	usertests.c	/^forkforkfork(char *s)$/;"	f
+forktest	forktest.c	/^forktest(void)$/;"	f
+forktest	usertests.c	/^forktest(char *s)$/;"	f
+fourfiles	usertests.c	/^fourfiles(char *s)$/;"	f
+fourteen	usertests.c	/^fourteen(char *s)$/;"	f
+fprintf	printf.c	/^fprintf(int fd, const char *fmt, ...)$/;"	f
+free	umalloc.c	/^free(void *ap)$/;"	f
+freep	umalloc.c	/^static Header *freep;$/;"	v	file:
+fsfull	usertests.c	/^fsfull()$/;"	f
+getcmd	sh.c	/^getcmd(char *buf, int nbuf)$/;"	f
+gets	ulib.c	/^gets(char *buf, int max)$/;"	f
+gettoken	sh.c	/^gettoken(char **ps, char *es, char **q, char **eq)$/;"	f
+go	grind.c	/^go(int which_child)$/;"	f
+grep	grep.c	/^grep(char *pattern, int fd)$/;"	f
+header	umalloc.c	/^union header {$/;"	u	file:
+init	initcode.S	/^init:$/;"	l
+iputtest	usertests.c	/^iputtest(char *s)$/;"	f
+iref	usertests.c	/^iref(char *s)$/;"	f
+iter	grind.c	/^iter()$/;"	f
+kernmem	usertests.c	/^kernmem(char *s)$/;"	f
+killstatus	usertests.c	/^killstatus(char *s)$/;"	f
+left	sh.c	/^  struct cmd *left;$/;"	m	struct:listcmd	typeref:struct:listcmd::cmd	file:
+left	sh.c	/^  struct cmd *left;$/;"	m	struct:pipecmd	typeref:struct:pipecmd::cmd	file:
+linktest	usertests.c	/^linktest(char *s)$/;"	f
+linkunlink	usertests.c	/^linkunlink(char *s)$/;"	f
+listcmd	sh.c	/^listcmd(struct cmd *left, struct cmd *right)$/;"	f
+listcmd	sh.c	/^struct listcmd {$/;"	s	file:
+ls	ls.c	/^ls(char *path)$/;"	f
+main	cat.c	/^main(int argc, char *argv[])$/;"	f
+main	echo.c	/^main(int argc, char *argv[])$/;"	f
+main	forktest.c	/^main(void)$/;"	f
+main	grep.c	/^main(int argc, char *argv[])$/;"	f
+main	grind.c	/^main()$/;"	f
+main	init.c	/^main(void)$/;"	f
+main	kill.c	/^main(int argc, char **argv)$/;"	f
+main	ln.c	/^main(int argc, char *argv[])$/;"	f
+main	ls.c	/^main(int argc, char *argv[])$/;"	f
+main	mkdir.c	/^main(int argc, char *argv[])$/;"	f
+main	rm.c	/^main(int argc, char *argv[])$/;"	f
+main	sh.c	/^main(void)$/;"	f
+main	stressfs.c	/^main(int argc, char *argv[])$/;"	f
+main	usertests.c	/^main(int argc, char *argv[])$/;"	f
+main	uthread.c	/^main(int argc, char *argv[]) $/;"	f
+main	wc.c	/^main(int argc, char *argv[])$/;"	f
+main	zombie.c	/^main(void)$/;"	f
+malloc	umalloc.c	/^malloc(uint nbytes)$/;"	f
+manywrites	usertests.c	/^manywrites(char *s)$/;"	f
+match	grep.c	/^match(char *re, char *text)$/;"	f
+matchhere	grep.c	/^int matchhere(char *re, char *text)$/;"	f
+matchstar	grep.c	/^int matchstar(int c, char *re, char *text)$/;"	f
+mem	usertests.c	/^mem(char *s)$/;"	f
+memcmp	ulib.c	/^memcmp(const void *s1, const void *s2, uint n)$/;"	f
+memcpy	ulib.c	/^memcpy(void *dst, const void *src, uint n)$/;"	f
+memmove	ulib.c	/^memmove(void *vdst, const void *vsrc, int n)$/;"	f
+memset	ulib.c	/^memset(void *dst, int c, uint n)$/;"	f
+mode	sh.c	/^  int mode;$/;"	m	struct:redircmd	file:
+morecore	umalloc.c	/^morecore(uint nu)$/;"	f	file:
+nulterminate	sh.c	/^nulterminate(struct cmd *cmd)$/;"	f
+openiputtest	usertests.c	/^openiputtest(char *s)$/;"	f
+opentest	usertests.c	/^opentest(char *s)$/;"	f
+panic	sh.c	/^panic(char *s)$/;"	f
+parseblock	sh.c	/^parseblock(char **ps, char *es)$/;"	f
+parsecmd	sh.c	/^parsecmd(char *s)$/;"	f
+parseexec	sh.c	/^parseexec(char **ps, char *es)$/;"	f
+parseline	sh.c	/^parseline(char **ps, char *es)$/;"	f
+parsepipe	sh.c	/^parsepipe(char **ps, char *es)$/;"	f
+parseredirs	sh.c	/^parseredirs(struct cmd *cmd, char **ps, char *es)$/;"	f
+peek	sh.c	/^peek(char **ps, char *es, char *toks)$/;"	f
+pgbug	usertests.c	/^pgbug(char *s)$/;"	f
+pipe1	usertests.c	/^pipe1(char *s)$/;"	f
+pipecmd	sh.c	/^pipecmd(struct cmd *left, struct cmd *right)$/;"	f
+pipecmd	sh.c	/^struct pipecmd {$/;"	s	file:
+preempt	usertests.c	/^preempt(char *s)$/;"	f
+print	forktest.c	/^print(const char *s)$/;"	f
+printf	printf.c	/^printf(const char *fmt, ...)$/;"	f
+printint	printf.c	/^printint(int fd, int xx, int base, int sgn)$/;"	f	file:
+printptr	printf.c	/^printptr(int fd, uint64 x) {$/;"	f	file:
+ptr	umalloc.c	/^    union header *ptr;$/;"	m	struct:header::__anon1	typeref:union:header::__anon1::header	file:
+putc	printf.c	/^putc(int fd, char c)$/;"	f	file:
+rand	grind.c	/^rand(void)$/;"	f
+rand_next	grind.c	/^unsigned long rand_next = 1;$/;"	v
+redircmd	sh.c	/^redircmd(struct cmd *subcmd, char *file, char *efile, int mode, int fd)$/;"	f
+redircmd	sh.c	/^struct redircmd {$/;"	s	file:
+reparent	usertests.c	/^reparent(char *s)$/;"	f
+reparent2	usertests.c	/^reparent2(char *s)$/;"	f
+right	sh.c	/^  struct cmd *right;$/;"	m	struct:listcmd	typeref:struct:listcmd::cmd	file:
+right	sh.c	/^  struct cmd *right;$/;"	m	struct:pipecmd	typeref:struct:pipecmd::cmd	file:
+rmdot	usertests.c	/^rmdot(char *s)$/;"	f
+run	usertests.c	/^run(void f(char *), char *s) {$/;"	f
+runcmd	sh.c	/^runcmd(struct cmd *cmd)$/;"	f
+rwsbrk	usertests.c	/^rwsbrk()$/;"	f
+s	umalloc.c	/^  } s;$/;"	m	union:header	typeref:struct:header::__anon1	file:
+sbrk8000	usertests.c	/^sbrk8000(char *s)$/;"	f
+sbrkarg	usertests.c	/^sbrkarg(char *s)$/;"	f
+sbrkbasic	usertests.c	/^sbrkbasic(char *s)$/;"	f
+sbrkbugs	usertests.c	/^sbrkbugs(char *s)$/;"	f
+sbrkfail	usertests.c	/^sbrkfail(char *s)$/;"	f
+sbrklast	usertests.c	/^sbrklast(char *s)$/;"	f
+sbrkmuch	usertests.c	/^sbrkmuch(char *s)$/;"	f
+sharedfd	usertests.c	/^sharedfd(char *s)$/;"	f
+size	umalloc.c	/^    uint size;$/;"	m	struct:header::__anon1	file:
+stack	uthread.c	/^  char       stack[STACK_SIZE]; \/* the thread's stack *\/$/;"	m	struct:thread	file:
+stacktest	usertests.c	/^stacktest(char *s)$/;"	f
+start	initcode.S	/^start:$/;"	l
+stat	ulib.c	/^stat(const char *n, struct stat *st)$/;"	f
+state	uthread.c	/^  int        state;             \/* FREE, RUNNING, RUNNABLE *\/$/;"	m	struct:thread	file:
+strchr	ulib.c	/^strchr(const char *s, char c)$/;"	f
+strcmp	ulib.c	/^strcmp(const char *p, const char *q)$/;"	f
+strcpy	ulib.c	/^strcpy(char *s, const char *t)$/;"	f
+strlen	ulib.c	/^strlen(const char *s)$/;"	f
+subdir	usertests.c	/^subdir(char *s)$/;"	f
+symbols	sh.c	/^char symbols[] = "<|>&;()";$/;"	v
+thread	uthread.c	/^struct thread {$/;"	s	file:
+thread_a	uthread.c	/^thread_a(void)$/;"	f
+thread_b	uthread.c	/^thread_b(void)$/;"	f
+thread_c	uthread.c	/^thread_c(void)$/;"	f
+thread_create	uthread.c	/^thread_create(void (*func)())$/;"	f
+thread_init	uthread.c	/^thread_init(void)$/;"	f
+thread_schedule	uthread.c	/^thread_schedule(void)$/;"	f
+thread_switch	uthread_switch.S	/^thread_switch:$/;"	l
+thread_yield	uthread.c	/^thread_yield(void)$/;"	f
+truncate1	usertests.c	/^truncate1(char *s)$/;"	f
+truncate2	usertests.c	/^truncate2(char *s)$/;"	f
+truncate3	usertests.c	/^truncate3(char *s)$/;"	f
+twochildren	usertests.c	/^twochildren(char *s)$/;"	f
+type	sh.c	/^  int type;$/;"	m	struct:backcmd	file:
+type	sh.c	/^  int type;$/;"	m	struct:cmd	file:
+type	sh.c	/^  int type;$/;"	m	struct:execcmd	file:
+type	sh.c	/^  int type;$/;"	m	struct:listcmd	file:
+type	sh.c	/^  int type;$/;"	m	struct:pipecmd	file:
+type	sh.c	/^  int type;$/;"	m	struct:redircmd	file:
+uninit	usertests.c	/^char uninit[10000];$/;"	v
+unlinkread	usertests.c	/^unlinkread(char *s)$/;"	f
+validatetest	usertests.c	/^validatetest(char *s)$/;"	f
+vprintf	printf.c	/^vprintf(int fd, const char *fmt, va_list ap)$/;"	f
+wc	wc.c	/^wc(int fd, char *name)$/;"	f
+whitespace	sh.c	/^char whitespace[] = " \\t\\r\\n\\v";$/;"	v
+writebig	usertests.c	/^writebig(char *s)$/;"	f
+writetest	usertests.c	/^writetest(char *s)$/;"	f
+x	umalloc.c	/^  Align x;$/;"	m	union:header	file:
