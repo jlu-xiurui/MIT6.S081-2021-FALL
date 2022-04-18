@@ -22,7 +22,7 @@
 
 ​		`jalr offset(rd)`的功能为：`t =pc+4; pc=(x[rs1]+sext(offset))&~1; x[rd]=t`。在使用`0x80000332 jalr -1298(ra)` 跳入`printf`后，`ra`的值为`0x80000332+4 = 0x80000336`。
 
-​	5. **运行以下代码： **
+​	5. **运行以下代码 **：
 
 ```
 	unsigned int i = 0x00646c72;
