@@ -26,7 +26,7 @@
 
 接受描述符环的数据结构如下图所示：
 
-![figure1](C:\ubuntu-share\figure1.png)
+![figure1](https://github.com/jlu-xiurui/MIT6.S081-2021-FALL/blob/master/lab8-net/figure1.png)
 
 其实质上即为一个存放接受描述符的循环队列，图中的灰色区域代表已经被硬件填充，但未被软件所提取的描述符；白色区域代表当前的未使用描述符，可以被硬件所填充。在这里，队列的长度被驱动程序初始化并存放在 `RDLEN` 寄存器中；`Head` 指向了硬件应填充的第一个描述符，其被存放在 `RDH` 寄存器中并被硬件自动更新，被初始化为 0 ；`Tail` 指向了最后一个未被填充的描述符，其被存放在 `RDT` 寄存器中并被驱动程序所更新，被初始化为 `RDLEN - 1`。
 
@@ -51,7 +51,7 @@
 
 传输描述符环的数据结构如下所示：
 
-![figure2](C:\ubuntu-share\figure2.png)
+![figure2](https://github.com/jlu-xiurui/MIT6.S081-2021-FALL/blob/master/lab8-net/figure2.png)
 
 其与接受描述符环的结构类似，队列的长度被软件初始化并存放在 `E1000_TDLEN` 寄存器中。`Head` 指向了当前硬件所要提取的描述符，被存放在 `TDH` 中并初始化为 0，并被硬件自动更新；`Tail` 指向了当前软件所要填充的描述符，被存放在 `TDT` 中并初始化为 0，并被驱动程序更新。
 
