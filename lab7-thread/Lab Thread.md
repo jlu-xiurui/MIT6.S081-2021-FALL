@@ -230,15 +230,15 @@
 
 在这里，`nthread` 为用户输入的参与屏障的全部线程数、`bstate.nthread` 为当前达到屏障函数的线程数并被初始化为零、`bstate.round` 为屏障进行的轮数。
 
-**32，42行：**在代码中，我们利用互斥锁 `bstate.barrier_mutex` 保护 `bstate` 中的所有条目，并用条件变量 `bstate.barrier_cond` 实现线程间的同步。
+**32，42行**：在代码中，我们利用互斥锁 `bstate.barrier_mutex` 保护 `bstate` 中的所有条目，并用条件变量 `bstate.barrier_cond` 实现线程间的同步。
 
-**33 - 37行：**当一个线程调用 `barrier` 时，其对 `bstate.nthread` 进行递增，并记录当前的 `bstate.round`。然后，其进入循环判断，如当前进入屏障的线程数小于全部线程数，或者当前屏障轮数没有改变时，则调用 `pthread_cond_wait` 阻塞在 `bstate.barrier_cond`条件变量上，并让出互斥锁使得其他线程得以调用 `barrier` 。
+**33 - 37行**：当一个线程调用 `barrier` 时，其对 `bstate.nthread` 进行递增，并记录当前的 `bstate.round`。然后，其进入循环判断，如当前进入屏障的线程数小于全部线程数，或者当前屏障轮数没有改变时，则调用 `pthread_cond_wait` 阻塞在 `bstate.barrier_cond`条件变量上，并让出互斥锁使得其他线程得以调用 `barrier` 。
 
-**38 - 41行：**当参与屏障的最后一个线程调用 `barrier` 时，其通过循环判断。在这里，将当前轮数 `bstate.round` 递增，使得其余被阻塞的线程可以跳出循环判断。并将 `bstate.nthread` 清零。
+**38 - 41行**：当参与屏障的最后一个线程调用 `barrier` 时，其通过循环判断。在这里，将当前轮数 `bstate.round` 递增，使得其余被阻塞的线程可以跳出循环判断。并将 `bstate.nthread` 清零。
 
 在这里，值得注意的是该种同步方式使得相邻两轮的屏障之间的 `bstate.nthread` 不会互相影响。因为唤醒线程调用 `pthread_cond_broadcast` 前，其余所有线程都正在被阻塞，因此唤醒线程一定会在其余线程对 `bstate.nthread` 进行递增之前将其清零、也会在其余线程记录其当前轮数之前将 `bstate.round` 递增，其也一定是在该轮中最后一个对 `bstate.nthread` 进行递增的线程。因此，该种特性使得相邻两次屏障之间是相互独立的。
 
-**43行：**当有线程达到该处时，说明该轮中所有线程均达到了 `barrier` ，因此调用 `pthread_cond_broadcast` 唤醒其余阻塞进程。
+**43行**：当有线程达到该处时，说明该轮中所有线程均达到了 `barrier` ，因此调用 `pthread_cond_broadcast` 唤醒其余阻塞进程。
 
 ## 实验结果：
 

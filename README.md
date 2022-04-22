@@ -25,3 +25,7 @@ MIT 6.S081 2021 FALL配套实验的代码及笔记，每个实验的对应源码
 ### 7. Lab Thread [lab7-thread](https://github.com/jlu-xiurui/MIT6.S081-2021-FALL/blob/master/lab7-thread/Lab%20Thread.md) 
 
 本实验分为三个部分，首先需要我们为xv6实现用户级线程包，以加深对线程上下文切换的理解。然后，需要我们利用UNIX接口实现简易的并发哈希表及 `barrier` 屏障功能，以提升线程同步及线程安全编程能力。
+
+### 8. Lab Net [lab8-net](https://github.com/jlu-xiurui/MIT6.S081-2021-FALL/blob/master/lab8-net/Lab%20Net.md)
+
+在本实验中，需要补全xv6的网络驱动程序，使其可以基于E1000设备进行网络通信。虽然实验看起来难度很大，且E1000的软件开发手册也十分难懂，但如果跟随实验指导书的提示，本实验的难度则并不是很大。
