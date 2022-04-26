@@ -29,3 +29,7 @@ MIT 6.S081 2021 FALL配套实验的代码及笔记，每个实验的对应源码
 ### 8. Lab Net [lab8-net](https://github.com/jlu-xiurui/MIT6.S081-2021-FALL/blob/master/lab8-net/Lab%20Net.md)
 
 在本实验中，需要补全xv6的网络驱动程序，使其可以基于E1000设备进行网络通信。虽然实验看起来难度很大，且E1000的软件开发手册也十分难懂，但如果跟随实验指导书的提示，本实验的难度则并不是很大。
+
+### 8. Lab Lock [lab8-lock](https://github.com/jlu-xiurui/MIT6.S081-2021-FALL/blob/master/lab9-lock/Lab%20Lock.md)
+
+在本实验中，需要通过降低xv6中内存分配器及磁盘块缓存中锁的粒度，以提升这两个程序的并行性。在 Thread 实验中我们已经尝试了锁的基本使用，而在本实验中则需要对并发条件下的临界区保护具备更深的理解，以在降低锁粒度的条件下不破坏程序的并发安全。
