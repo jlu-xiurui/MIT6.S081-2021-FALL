@@ -1,5 +1,5 @@
 # MIT6.S081
-MIT 6.S081 2021 FALL配套实验的代码及笔记，每个实验的对应源码位于对应的文件夹中。课程网站为[MIT6.S081](https://pdos.csail.mit.edu/6.828/2020/xv6.html)
+MIT 6.S081 2021 FALL配套实验的代码及笔记，每个实验的对应源码位于对应的文件夹中。课程网站为[MIT6.S081](https://pdos.csail.mit.edu/6.828/2020/xv6.html)（已完结）
 
 ### 1. Lab Utilities [Lab1-note](https://github.com/jlu-xiurui/MIT6.S081-2021-FALL/blob/master/lab1-util/Utilities-note.md)
 本实验要求实验者基于xv6的函数接口，实现一系列的用户级程序，需要实验者对于进程行为（如fork,exec,wait对进程的影响等）有一定的理解，总体难度不大。
@@ -30,6 +30,11 @@ MIT 6.S081 2021 FALL配套实验的代码及笔记，每个实验的对应源码
 
 在本实验中，需要补全xv6的网络驱动程序，使其可以基于E1000设备进行网络通信。虽然实验看起来难度很大，且E1000的软件开发手册也十分难懂，但如果跟随实验指导书的提示，本实验的难度则并不是很大。
 
-### 8. Lab Lock [lab8-lock](https://github.com/jlu-xiurui/MIT6.S081-2021-FALL/blob/master/lab9-lock/Lab%20Lock.md)
+### 9. Lab Lock [lab9-lock](https://github.com/jlu-xiurui/MIT6.S081-2021-FALL/blob/master/lab9-lock/Lab%20Lock.md)
 
 在本实验中，需要通过降低xv6中内存分配器及磁盘块缓存中锁的粒度，以提升这两个程序的并行性。在 Thread 实验中我们已经尝试了锁的基本使用，而在本实验中则需要对并发条件下的临界区保护具备更深的理解，以在降低锁粒度的条件下不破坏程序的并发安全。
+
+
+### 10. Lab Filesystem [lab10-Filesystem](https://github.com/jlu-xiurui/MIT6.S081-2021-FALL/blob/master/lab9-lock/Lab%20Lock.md)
+
+在本实验中，我们需要为xv6的文件系统增添一些小功能：inode 的双重间接块及符号链接，总体难度不大。
