@@ -38,3 +38,7 @@ MIT 6.S081 2021 FALL配套实验的代码及笔记，每个实验的对应源码
 ### 10. Lab Filesystem [lab10-Filesystem](https://github.com/jlu-xiurui/MIT6.S081-2021-FALL/blob/master/lab9-lock/Lab%20Lock.md)
 
 在本实验中，我们需要为xv6的文件系统增添一些小功能：inode 的双重间接块及符号链接，总体难度不大。
+
+### 11. Lab mmap [lab11-mmap]https://github.com/jlu-xiurui/MIT6.S081-2021-FALL/blob/master/lab11-mmap/Lab%20mmap.md)
+
+在本实验中，需要为xv6实现简单的 mmap 功能，以综合提升对于虚拟内存和文件系统的理解。
