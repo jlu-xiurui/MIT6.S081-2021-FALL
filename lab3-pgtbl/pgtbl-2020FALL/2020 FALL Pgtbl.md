@@ -10,7 +10,7 @@
 
 在本部分中，需要实验者为xv6系统的进程增加其专属内核页表副本。在进程被调度时，进程使用其专属的内核页表，而不使用原来xv6中定义在 `vm.c`的 单一内核页表 `kernel_pagetable`。为了实现这一点，首先需要在进程控制块中增加内核页表的根页目录表 `kpagetable `:
 
-```
+```C
  86 struct proc {
  87   struct spinlock lock;
  88 
@@ -41,7 +41,7 @@
 
 在这里，除了为用户提供的内核栈  `Kstack` 外，其余的页均具有固定的虚拟地址和物理地址，且已经被分配在物理内存中。因此，在本部分中，内核栈 `Kstack` 的物理内存分配和释放为关键之处。在这里，内核页表副本的初始化与内核页表 `kernel_pagetable` 的初始化函数 `kvminit` 所作的工作类似，在分配了根目录表 `kpagetable` 后，通过 `mappages` 函数将内核地址空间中除 `Kstack` 的部分各自进行映射。值得注意的是，由于实验下一部分的需要，在这里不能对 `CLINT` 进行映射（实际上实验指导书中也没有进行这个页面的映射）：
 
-```
+```C
  23 void
  24 user_kvmmap(pagetable_t kpagetable,uint64 va, uint64 sz,uint64 pa, int perm)
  25 {
@@ -83,7 +83,7 @@
 
 在 `procinit` 中，为了使得进程内核栈与其所属的内核页表副本关联起来，我们将内核栈的初始化操作移至 `allocporc `：
 
-```
+```C
  25 void
  26 procinit(void)
  27 {
@@ -102,7 +102,7 @@
 
 在 `allocproc` 中，我们完成全部的内核页表副本创建工作：
 
-```
+```C
 85 static struct proc*
  86 allocproc(void)
  87 {
@@ -157,7 +157,7 @@
 
 在 `freeproc` 中，我们完成所有的内核页表副本释放工作：
 
-```
+```C
 137 static void
 138 freeproc(struct proc *p)
 139 {
@@ -188,7 +188,7 @@
 
 在本函数中，我们需要释放为内核栈所分配的物理地址，并将 `p->kstack` 置为空指针。在这里，我们调用 `user_kvmfree` 完成内核页表的释放操作：
 
-```
+```C
 351 void kfreewalk(pagetable_t kpagetable){
 352     // there are 2^9 = 512 PTEs in a page table.
 353     for(int i = 0; i < 512; i++){
@@ -214,7 +214,7 @@
 
 由于我们不再使用位于 `vm.c` 的总内核页表 `kernel_pagetable` 为进程服务，在 `scheduler` 调度进程时我们需要将 `satp` 寄存器置为进程的专属内核页表副本，以通知硬件利用该页表进行地址转换：
 
-```
+```C
 494 void
 495 scheduler(void)
 496 {
@@ -265,7 +265,7 @@
 
 接下来为最值得注意的地方，由于我们使用进程专属的内核页表副本，在 `kvmpa` 中我们需要将函数中被用到的 `kernel_pagetable`  更换为进程自身的 `myproc()->kpagetable` 。这一点困扰了我很长时间，可以说是本部分的最大之坑。
 
-```
+```C
 167 uint64
 168 kvmpa(uint64 va)
 169 {
@@ -293,7 +293,7 @@
 
 首先，我们更改最复杂的 `exec` 函数，其功能是为当前进程分配全新的程序段、代码段等内存映像，并删除原有的进程内存映像。在这里仅对进行更改的部分（102行及以后）进行讲解：
 
-```
+```C
 10 static int loadseg(pde_t *pgdir, uint64 addr, struct inode *ip, uint offset, uint sz);
  11 int
  12 exec(char *path, char **argv)
@@ -338,7 +338,7 @@
 
 在这里，坑点之一在于不需要仿照用户页表的操作方式，而创建新的内核页表副本即保存其旧副本。而是仅需在对新用户页表   `pagetable` 完成初始化后，调用 `kvmdealloc` 解除原内核页表副本的映射，调用 `kvmcopy` 将新内核页表副本的虚拟地址映射至用户虚拟地址所映射的物理地址即可，映射范围为0至新进程的用户虚拟内存大小`sz`。`kvmdealloc` 的实现如下：
 
-```
+```C
 318 uint64
 319 kvmdealloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
 320 {   
@@ -355,7 +355,7 @@
 
 其与 `uvmdealloc` 的唯一差别在于传入 `uvmunmap` 的参数 `dofree` 被设置为0，使得在解除映射时不释放对应的物理内存。`kvmcopy` 的实现如下：
 
-```
+```C
 416 int 
 417 kvmcopy(pagetable_t old, pagetable_t new,uint64 oldsz, uint64 newsz)
 418 {   
@@ -387,7 +387,7 @@
 
 然后就是 `fork` 函数，该函数的功能为创建新的进程，使得新的进程具有与旧进程各自的相同内存映像（**各自相同指存储物理地址不同，但内容相同**）。其更改如下：
 
-```
+```C
 272 int
 273 fork(void)
 274 {
@@ -434,7 +434,7 @@
 
 最后即为 `sbrk` 的实现函数 `growproc` ，该函数为进程分配新的物理内存，或释放物理内存：
 
-```
+```C
 249 int
 250 growproc(int n)
 251 {
@@ -461,7 +461,7 @@
 
 最后，由于在内核页表副本中同时存在对用户进程地址的映射，以及对内核地址的映射，因此用户进程的虚拟地址不得超过内核地址的使用最低地址 `PLIC` ，我们在为用户地址分配新物理内存的 `uvmalloc` 中实现这一点限制：
 
-```
+```C
 273 uint64
 274 uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
 275 {
