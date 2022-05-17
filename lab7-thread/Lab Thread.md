@@ -95,7 +95,7 @@
 
 `thread_schedule` 用于调度线程执行，其遍历所有线程，寻找状态为 `RUNNABLE` 的可执行线程，并调用 `thread_switch` 实施具体的线程切换：
 
-```
+```C
  54 void
  55 thread_schedule(void)
  56 {
