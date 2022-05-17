@@ -10,7 +10,7 @@
 
 为了实现双重间接块，我们需要对 `dinode` 、 `inode` 及一系列相关宏进行更改：
 
-```
+```C
 kernel/fs.h:
  27 #define NDIRECT 11
  28 #define NINDIRECT (BSIZE / sizeof(uint))
@@ -47,7 +47,7 @@ kernel/file.h
 
 在这里，我们将 `dinode` 和 `inode` 中 `addrs` 的前11个元素用于存放直接快，第12个元素用于存放间接块，第13个元素用于存放双重间接块。并且，我们需要对 `bmap` 和 `itrunc` 函数中对 `inode` 的 `addrs` 操作方法进行更改：
 
-```
+```C
 377 static uint
 378 bmap(struct inode *ip, uint bn)
 379 {
@@ -110,7 +110,7 @@ kernel/file.h
 
  **410 - 424行**：通过两次映射，首先从双重间接块中提取子间接块，并从子间接块中提取所需的磁盘快。在子间接块或所需磁盘块未被分配时，对其进行分配。
 
-```
+```C
 432 void
 433 itrunc(struct inode *ip)
 434 {
@@ -171,7 +171,7 @@ kernel/file.h
 
 符号链接的具体的实现并不复杂，仅需在系统调用 `sys_symlink` 中创建类型为 `T_SYMLINK` （在 `kernel/stat.h` 中定义）的文件，并在该文件中存放被链接文件的路径名即可：
 
-```
+```C
 506 uint64
 507 sys_symlink(void){
 508     char target[MAXPATH], path[MAXPATH];
@@ -199,7 +199,7 @@ kernel/file.h
 需要注意的点主要有两个：需要使用 `begin_op` 和 `end_op` 包围对文件系统进行操作的代码段，以及在调用末尾释放在 `create` 中获取的 `inode` 锁。除此以外，我们还需对 `sys_open` 的行为进行修正：
 
 ```
-...
+...C
 325   int cnt = 0;
 326   while(ip->type == T_SYMLINK && cnt < 10 && !(omode & O_NOFOLLOW)){
 327       oldip = ip;
