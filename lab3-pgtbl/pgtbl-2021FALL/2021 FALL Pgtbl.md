@@ -8,7 +8,7 @@
 
 在创建进程（调用`allocproc`）时，需要在物理内存中分配一个页面，并为进程页表添加映射。在这里，将上述操作安放在用于初始化页表的`proc_pagetable`：
 
-```
+```C
 171 pagetable_t
 172 proc_pagetable(struct proc *p)
 173 {
@@ -53,7 +53,7 @@
 
 值得注意的是，当映射失败时，需要释放物理内存并解除用户页表映射。在结束进程时（调用`freeproc`），同样需要释放物理内存并解除用户页表映射，在这里将该操作安放在用于释放页表的`proc_freepagetable` 中：
 
-```
+```C
 214 void
 215 proc_freepagetable(pagetable_t pagetable, uint64 sz)
 216 {
@@ -70,7 +70,7 @@
 
 在本部分中，需要对页表中所有有效的PDE及PTE进行输出，利用DFS方式的递归方法即可完成：
 
-```
+```C
 435 // lab3 pgtbl : print vm
 436 static void vmprint_helper(pagetable_t pagetable,int level){
 437     if(level > 3)
@@ -101,7 +101,7 @@
 
 值得注意的是，`PTE_A` （通过RISCV手册查询得到其值为 `1<<6` ）被硬件自动设置，不需要在软件层面上对其进行设置。系统调用`sys_pgaccess`的代码如下：
 
-```
+```C
  79 #ifdef LAB_PGTBL
  80 int
  81 sys_pgaccess(void)
