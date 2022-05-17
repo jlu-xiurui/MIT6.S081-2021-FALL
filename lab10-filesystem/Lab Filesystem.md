@@ -198,8 +198,8 @@ kernel/file.h
 
 需要注意的点主要有两个：需要使用 `begin_op` 和 `end_op` 包围对文件系统进行操作的代码段，以及在调用末尾释放在 `create` 中获取的 `inode` 锁。除此以外，我们还需对 `sys_open` 的行为进行修正：
 
-```
-...C
+```C
+...
 325   int cnt = 0;
 326   while(ip->type == T_SYMLINK && cnt < 10 && !(omode & O_NOFOLLOW)){
 327       oldip = ip;
