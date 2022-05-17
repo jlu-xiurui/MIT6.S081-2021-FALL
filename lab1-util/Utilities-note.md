@@ -6,7 +6,7 @@
 
 ### sleep(easy)
 
-```
+```C
   1 #include "kernel/types.h"
   2 #include "kernel/stat.h"
   3 #include "user/user.h"
@@ -29,7 +29,7 @@
 
 ### pingpong(easy)
 
-```
+```C
   1 #include "kernel/types.h"
   2 #include "kernel/stat.h"
   3 #include "user/user.h"
@@ -72,7 +72,7 @@
 
 ### primes(moderate/hard)
 
-```
+```C
   1 #include "kernel/types.h"
   2 #include "kernel/stat.h"
   3 #include "user/user.h"
@@ -129,7 +129,7 @@
 
 本程序要求建立一个双向进程链表以打印质数。除主进程外，各进程从其父进程读取数字，第一个被读取的数字即为质数，将其打印后，将从父进程中读取的数字中**不能被该质数整除**的数传入至其子进程。主进程则将2到35之间的整数输入至其子进程。具体的工作流程和伪代码如下：
 
-```
+```C
 p = get a number from left neighbor
 print p
 loop:
@@ -160,7 +160,7 @@ loop:
 
 该程序的功能是，通过输入**查询根目录**和**目标文件名**，寻找并打印查询根目录下所有与目标文件名的名称相同的文件，该程序由几个子函数构成，在这里分别进行讲解。
 
-```
+```C
   1 #include "kernel/types.h"
   2 #include "kernel/stat.h"
   3 #include "user/user.h"
@@ -171,7 +171,7 @@ loop:
   8 static char path[BUFSIZE];
   9 static void search(void);
  10 
-...
+...C
  28 int main(int argc,char* argv[]){
  29     if(argc != 3){
  30         fprintf(2,"find <pathname> <filename>\n");
@@ -186,7 +186,7 @@ loop:
 
 在这里，定义了全局变量`target`用于储存**目标文件名**、`path`用于保存**当前路径名**的字符串栈，主函数将当前路径名初始化为查询根目录，并保存目标文件名后，调用递归函数`search`。
 
-```
+```C
  11 char* fmtname()
  12 {
  13   static char buf[DIRSIZ+1];
@@ -208,7 +208,7 @@ loop:
 
 该函数用于提取当前路径名对应的文件名，即提取当前路径名最后一个`\`后的字符串。
 
-```
+```C
  38 static void search(void){
  39     char* p;
  40     int fd;
@@ -250,7 +250,7 @@ loop:
 
 ## xargs (moderate)
 
-```
+```C
   1 #include "kernel/types.h"
   2 #include "kernel/stat.h"
   3 #include "user/user.h"
