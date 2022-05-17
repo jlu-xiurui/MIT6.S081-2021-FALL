@@ -8,7 +8,7 @@
 
 在本部分中，需要我们实现xv6用户级线程包。首先，为了在线程切换时保存当前线程上下文（即寄存器和程序计数器），需要在 `thread` 结构中增加 `context` 结构保存上下文：
 
-```
+```C
  13 struct context {
  14     uint64 ra;
  15     uint64 sp;
@@ -36,7 +36,7 @@
 
 当 `thread_swithch` 切换线程时，其将当前线程的上下文保存在其 `thread` 结构的 `context` 中，并将被调度线程 `context` 中的条目读入寄存器：
 
-```
+```C
   8     .globl thread_switch
   9 thread_switch:
  10 /* YOUR CODE HERE */
@@ -77,7 +77,7 @@
 
 在 `RISC-V` 架构中，`ra` 寄存器保存了当前函数的返回地址。在 `thread_create` 创建线程时，我们将 `context->ra` 置为线程所需执行函数的起始地址，以在 `thread_switch` 中调用 `ret` 时，其控制流跳转至该线程的所需执行的函数：
 
-```
+```C
  92 void
  93 thread_create(void (*func)())
  94 {
@@ -141,7 +141,7 @@
 
 首先是锁的初始化，`init` 函数被 `main` 函数调用：
 
-```
+```C
  20 pthread_mutex_t hashlock[NBUCKET];
  21 
  22 static void
@@ -153,7 +153,7 @@
 
 当 `put` 对于哈希表进行插入时，利用锁对针对链表结构的操作进行保护。在插入时对于链表结构的操作有部分，分别为 `put` 函数中遍历哈希桶的主键匹配，以及 `insert` 函数中对于哈希表的头插：
 
-```
+```C
  35 static void
  36 insert(int key, int value, int i)
  37 {
@@ -196,7 +196,7 @@
 
 在本部分中，需要利用UNIX接口实现 `barrier` 屏障功能，其功能为只有当参与屏障的所有线程均调用 `barrier` 函数时，任意线程才可以从 `barrier` 中返回，否则就阻塞在 `barrier` 中。具体的实现方式需要使用到UNIX中的同步原语 **条件变量`pthread_cond_t`** ，其功能与xv6中的`sleep/wakeup`机制相似。其实现如下：
 
-```
+```C
   9 struct barrier{
  10   pthread_mutex_t barrier_mutex;
  11   pthread_cond_t barrier_cond;
