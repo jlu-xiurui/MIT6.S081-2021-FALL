@@ -6,7 +6,7 @@
 
 为了实现写时复刻功能，我们需要对物理内存页的被映射次数进行记录，以避免在物理内存页尚被进程使用时，被拥有其的另一个进程释放。在这里将物理内存页的引用计数实现安放在`kernel/kalloc.c`中：
 
-```
+```C
  16 static int reference_count[(PHYSTOP - 0x80000000) / PGSIZE];
  17 
  18 static int idx_rc(uint64 pa){
@@ -32,7 +32,7 @@
 
 在 `kfree` 函数中对所要释放的物理内存页的引用计数进行判断，如其引用计数大于1，则仅将其减一；如引用次数小于1（当为1时仅有一个虚拟内存页映射至该页，当为0时为 `kinit` 初始化调用`kfree`），则释放该页并将其添加至空闲列表：
 
-```
+```C
  58 void
  59 kfree(void *pa)
  60 {
@@ -59,7 +59,7 @@
 
 在 `kalloc` 中，如空闲列表不为空，则将被分配的物理内存页的引用计数初始化为1：
 
-```
+```C
  84 void *
  85 kalloc(void)
  86 {
@@ -82,7 +82,7 @@
 
 在 `kernel/vm.c` 中，我们更改 `uvmcopy` 以使得在 `fork` 时父子进程共享同一片物理内存。在这里，我们定义利用了页表项的用户保留`flag`项，规定 `#define PTE_C (1L << 5)  `，以标记虚拟内存页是否为 `COW` 页（即被写时复刻的页）: 
 
-```
+```C
 303 int
 304 uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
 305 {
@@ -116,7 +116,7 @@
 
 在 `kernel/trap.c` 的 `usertrap`  中，我们捕捉 `COW` 页被写入的情况：
 
-```
+```C
 ...
 68   } else if((which_dev = devintr()) != 0){
  69     // ok
@@ -159,7 +159,7 @@
 
 最后，我们需要为 `copyout` 增加与 `usertrap` 类似的判断代码，以防止对 `COW` 页的直接写入：
 
-```
+```C
 346 int
 347 copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
 348 {
