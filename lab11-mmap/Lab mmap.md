@@ -8,7 +8,7 @@
 
 在本实验中，我将存储映射缓冲区存放在用户进程空间的最顶端，即紧邻 `TRAMFRAME` 页的高虚拟内存部分。首先，我们需要为进程控制块 `proc` 增加新的元素，用于记录 `mmap` 的调用情况：
 
-```
+```C
  85 struct vma{
  86     uint64 addr;
  87     uint64 sz;
@@ -50,7 +50,7 @@
 
 在 `sys_mmap` 系统调用中，我们在进程控制块中填写与 `vma` 有关的信息：
 
-```
+```C
 105 uint64
 106 sys_mmap(void){
 107     int length, prot,flags,fd,offset;
@@ -81,7 +81,7 @@
 
 值得注意的是，当 `flag` 为 `MAP_SHARED` 时，`mmap` 对于存储映射缓冲区的访问权限不得违背其映射文件的访问权限。并且，在`sys_mmap` 中并未分配实际的物理内存，而是在  `usertrap` 中进行懒分配：
 
-```
+```C
 ...
  71     } else if((which_dev = devintr()) != 0){
  72         // ok
@@ -138,7 +138,7 @@
 
 **100 - 104行**：最后，从 `vma` 所对应的文件中读取数据，并将其写入存储映射缓冲区的对应位置。
 
-```
+```C
 132 uint64
 133 sys_munmap(void){
 134     uint64 addr;
@@ -179,7 +179,7 @@
 
 **149 - 149行**：调用 `uvmunmap` 释放该段存储映射缓冲区，值得注意的是，由于对于存储映射缓冲区采取懒分配策略，因此需要对`uvmunmap` 进行更改，使得其跳过对无效虚拟内存页的解除映射：
 
-```
+```C
 165 void
 166 uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
 167 {
@@ -209,7 +209,7 @@
 
 最后，我们需要对 `exit` 和 `fork` 进行更改，使得其对存储映射缓冲区进行合理的操作：
 
-```
+```C
 365 void
 366 exit(int status)
 367 {
@@ -244,7 +244,7 @@
 
 在 `exit` 中，我们对存储映射缓存区的所有内容进行类 `munmap` 操作。在这里将对进程有关 `vma` 的情况操作在 `freeproc `中集中处理：
 
-```
+```C
 154 static void
 155 freeproc(struct proc *p)
 156 {
@@ -277,7 +277,7 @@
 
 在  `fork` 中，将进程有关 `vma` 的成员进行拷贝，当对应 `vma` 有效（即大小不为零）时，对其文件的引用数递增：
 
-```
+```C
 286 int
 287 fork(void)
 288 {
