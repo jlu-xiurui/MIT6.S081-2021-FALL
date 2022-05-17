@@ -9,7 +9,7 @@
 在xv6操作系统中，系统调用通过如下的行为实现：当用户调用系统调用函数时，执行的并不是某一段与系统调用函数同名的C函数，而是跳转至对应的汇编语句。通过汇编语句，将相应的系统调用号存储至寄存器`a7`，并调用`ecall`函数，如下代码段所示：
 
 ```
-... 
+... C
   3 .global fork
   4 fork:
   5 	li a7, SYS_fork
@@ -28,7 +28,7 @@
 1. 陷入陷阱时，`uservec(kernel/trampoline.S:16)` 被调用，用户寄存器被保存至`trapframe`中，由于在函数调用时，调用参数被存放在在寄存器中，因此使得内核对用户系统调用的参数是可见的。
 2. 在`uservec`的结尾处，`usertrap (kernel/trap.c:37)`被调用。在该函数中，内核检测产生陷阱的原因（硬件中断、系统调用或异常），当陷阱原因为系统调用时，`syscall (kernel/syscall.c:133)`被调用以处理系统调用，最后内核通过`usertrapret (kernel/trap.c:90)`返回至用户态。
 
-```
+```C
 161 void
 162 syscall(void)
 163 {
@@ -50,7 +50,7 @@
 
 在`syscall`中，系统调用号通过存放在`trapframe`中的寄存器`a7`被取出，并被作为系统调用表`syscalls`的索引，以寻找所需的系统调用函数，并对其进行调用。其中，系统调用表`syscalls`是一个函数指针数组，其定义如下：
 
-```
+```C
 110 static uint64 (*syscalls[])(void) = {
 111 [SYS_fork]    sys_fork,
 112 [SYS_exit]    sys_exit,
@@ -73,7 +73,7 @@
 
 在`sysproc.c`中，实际的系统调用行为被完成，值得注意的是，用户传入系统调用函数的参数通过 `argraw` 被从 `trapframe` 中提取：
 
-```
+```C
  34 static uint64
  35 argraw(int n)
  36 {
@@ -105,13 +105,13 @@
 
 首先，我们需要在`user/user.h`中声明用户函数`tarce`:
 
-```
+```C
 26 int trace(int);
 ```
 
 在本部分，需要通过添加 `trace` 系统调用，使得 `user/trace.c` 中的函数生效：
 
-```
+```C
   6 int
   7 main(int argc, char *argv[])
   8 {
@@ -138,7 +138,7 @@
 
 本函数的功能是输入一个掩码（`argv[1]`）和另一组命令行参数列表（`argv[2],argv[3]...`），使得在执行该命令行参数列表所代表的程序时，与掩码相应位对应的系统调用被调用时打印相关信息。为了使得该函数生效，我们需要构造系统调用`sys_trace`，使得该掩码传入至内核中该进程所对应的进程控制块。为此，我们需要在 `kernel/proc.h` 中为进程控制块结构添加新的元素：
 
-```
+```C
  86 struct proc {
  87   struct spinlock lock;
  88 
@@ -166,7 +166,7 @@
 在这里，添加了32位无符号数 `tracemask` 以存放 `trace` 掩码。同时，在 `fork` 函数中，应当使得子进程的进程控制块继承父进程的掩码：
 
 ```
-...
+...C
 283  // copy the tracemask to the child
 284  np->tracemask = p->tracemask;
 ...
@@ -174,7 +174,7 @@
 
 接下来，让我们跟随系统调用流程，对xv6源码进行添加。在系统调用发生时，用户层函数被映射至 `user/usys.S` 中的汇编语句，因此我们需要更改产生该汇编代码的文件 `user/usys.pl`：
 
-```
+```C
   9 sub entry {
  10     my $name = shift;
  11     print ".global $name\n";
@@ -212,7 +212,7 @@
 在这里，另一个系统调用 `sysinfo` 也被添加至此，在下文中不对上述相同流程进行介绍。通过 `ecall` 语句，控制流陷入内核，内核对陷阱进行检查后调用 `syscall` 函数。为了添加新的系统调用，我们需要在 `syscall.c` 中将 `sysproc.c` 中的实际系统调用函数在该文件中声明，并且修改系统调用表：
 
 ```
-...
+...C
 105 extern uint64 sys_write(void);
 106 extern uint64 sys_uptime(void);
 107 extern uint64 sys_trace(void);
@@ -228,7 +228,7 @@
 
 需要注意将新加入的系统调用号在`syscall.h`中声明。在 `sysproc.c` 中，构造 `sys_trace` 以将用户掩码添加至进程控制块：
 
-```
+```C
 100 // set the tracemask
 101 uint64
 102 sys_trace(void){
@@ -242,7 +242,7 @@
 
 在完成了 `trace` 系统调用之后，我们可以将掩码传入内核，接下来就是思考如何在系统调用时打印跟踪信息了。在这里，我们需要修改系统调用的主函数 `syscall` ，使得当系统调用被执行时，检查相应掩码位是否被设置，当掩码位被设置时，打印相关信息：
 
-```
+```C
 136 static char* syscall_name[] = {
 137 [SYS_fork]    "fork",
 138 [SYS_exit]    "exit",
@@ -289,7 +289,7 @@
 
 ### sysinfo(moderate)
 
-```
+```C
   1 struct sysinfo {
   2   uint64 freemem;   // amount of free memory (bytes)
   3   uint64 nproc;     // number of process
@@ -298,7 +298,7 @@
 
 在此部分，我们需要设计 `sysinfo` 函数，使得内核填写用户传入的 `struct sysinfo*` 指针所对应结构中的系统进程数和系统空闲内存数。首先，我们需要在`user/user.h`中声明用户函数`sysinfo` 以及结构 `sysinfo`:
 
-```
+```C
  3 struct sysinfo;
 ...
  27 int sysinfo(struct sysinfo*);
@@ -308,13 +308,13 @@
 
 在xv6中，进程的信息是被`proc.c`中的进程列表所保存的：
 
-```
+```C
  11 struct proc proc[NPROC];
 ```
 
 为了提取系统进程数，我们仅需遍历该进程列表，寻找状态 `state` 不为 `UNUSERD` 的进程即可：
 
-```
+```C
 701 // lab2 syscall : get the nproc
 702 uint64
 703 getnproc(void){
@@ -331,7 +331,7 @@
 
 在xv6中，空闲的内存块被组织成空闲内存页链表，其中的每个内存块的大小均为`PGSIZE`字节，即为页大小。在这里，我们遍历链表，记录结点个数即可，需要注意遍历前后对链表加删锁：
 
-```
+```C
  84 //lab2 syscall : get the freemem
  85 uint64
  86 getfreemem(void){
@@ -350,7 +350,7 @@
 
 有了这两个功能函数，我们仅需实现 `sysproc.c` 中的实际系统调用函数即可，注意在该文件出导入 `sysinfo.h` 头文件，并且在`kernel/def.h` 中声明`struct sysinfo` 以及以上两个功能函数：
 
-```
+```C
 110 // get the freemem and nproc
 111 uint64
 112 sys_sysinfo(void){
