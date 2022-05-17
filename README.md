@@ -35,7 +35,7 @@ MIT 6.S081 2021 FALL配套实验的代码及笔记，每个实验的对应源码
 在本实验中，需要通过降低xv6中内存分配器及磁盘块缓存中锁的粒度，以提升这两个程序的并行性。在 Thread 实验中我们已经尝试了锁的基本使用，而在本实验中则需要对并发条件下的临界区保护具备更深的理解，以在降低锁粒度的条件下不破坏程序的并发安全。
 
 
-### 10. Lab Filesystem [lab10-Filesystem](https://github.com/jlu-xiurui/MIT6.S081-2021-FALL/blob/master/lab9-lock/Lab%20Lock.md)
+### 10. Lab Filesystem [lab10-Filesystem](https://github.com/jlu-xiurui/MIT6.S081-2021-FALL/blob/master/lab10-filesystem/Lab%20Filesystem.md)
 
 在本实验中，我们需要为xv6的文件系统增添一些小功能：inode 的双重间接块及符号链接，总体难度不大。
 
