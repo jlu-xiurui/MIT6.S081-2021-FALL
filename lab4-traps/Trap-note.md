@@ -24,7 +24,7 @@
 
 ​	5. **运行以下代码 **：
 
-```
+```C
 	unsigned int i = 0x00646c72;
 	printf("H%x Wo%s", 57616, &i);
 ```
@@ -35,7 +35,7 @@
 
 ​	6. **在下面的代码中，会打印 `'y='`什么？为什么会发生这种情况？**
 
-```
+```C
 	printf("x=%dy=%d", 3);
 ```
 
@@ -49,7 +49,7 @@
 
 可见在帧指针固定偏移量`-8`处存放了当前函数的返回地址，固定偏移量`-16`处存放了指向函数调用列表中上一个函数的堆栈帧的指针。因此即可跟随该指针向上遍历函数调用列表，`backtrace`函数实现如下：
 
-```
+```C
 136 void backtrace(void){ 
 137     uint64 fp = r_fp(); 
 138     uint64 stack_top = PGROUNDUP(fp); 
@@ -70,7 +70,7 @@
 
 如何在xv6系统中增加系统调用已经在  `syscall Lab` 中被详细介绍，在这里不加赘述。直接讲解系统调用的实现。首先，为了在进程中增加计时器，需要在进程控制块中增加新的条目：
 
-```
+```C
 123 struct proc { 
 124   struct spinlock lock; 
 125  
@@ -104,7 +104,7 @@
 
 在 `allocproc` 创建进程时，对上述新增条目进行初始化：
 
-```
+```C
 ...
 119 found:
 120   p->pid = allocpid();
@@ -118,7 +118,7 @@
 
 在 `sys_sigalarm` 中，为周期 `ticks` 及函数入口地址 `handler` 赋值，并将当前滴答数 `currticks` 刷新。
 
-```
+```C
 100 uint64
 101 sys_sigalarm(void){
 102     printf("sigalarm\n");
@@ -135,7 +135,7 @@
 
 在 `trap.c` 的 `usertrap` 函数中，内核处理所有来自用户的中断，其中包括CPU时钟中断。当 `which_dev = devintr()) == 2` 时，当前中断类型为CPU时钟中断，我们在这里记录滴答数及判断是否调用 `handler` 函数：
 
-```
+```C
  ...
  67     syscall();
  68   } else if((which_dev = devintr()) != 0){
@@ -187,7 +187,7 @@
 
 在定时器处理函数末尾，需要调用 `sigreturn` 以返回用户进程，其对应的系统调用如下：
 
-```
+```C
 112 uint64
 113 sys_sigreturn(void){
 114     struct proc* p = myproc();
