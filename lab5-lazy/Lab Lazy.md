@@ -6,7 +6,7 @@
 
 首先，我们需要更改系统调用 `sys_sbrk`，使得用户希望分配内存时不直接分配内存，但当用户希望释放内存时则释放对应虚拟内存：
 
-```
+```C
  41 uint64
  42 sys_sbrk(void)
  43 {
@@ -26,7 +26,7 @@
 
 在这里，我们有可能在 `uvmdealloc` 中调用 `uvmunmap` 对未分配物理内存的虚拟内存释放。因此，我们需要更改`uvmunmap`，使得当对应虚拟内存未被分配物理内存时将其跳过：
 
-```
+```C
 173 void
 174 uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
 175 {
@@ -54,7 +54,7 @@
 
 在这里，为 `proc` 增加了 `maxva` 条目，以记录当前进程中实际分配物理内存的最高虚拟地址；并增加了 `ustack` 条目，以记录当前进程的用户栈的最高地址。在 `usertrap` 中，进行实际的物理内存分配工作：
 
-```
+```C
  68   } else if((which_dev = devintr()) != 0){
  69     // ok
  70   } else {
@@ -88,7 +88,7 @@
 
 在这里，`maxva` 和 `ustack` 在 `exec` 中初始化：
 
-```
+```C
 ...
 110   // Commit to the user image.
 111   oldpagetable = p->pagetable;
@@ -104,7 +104,7 @@
 
 由于 `maxva` 的引入，使得 `fork` 和 `freeproc` 中不必对未分配内存的虚拟地址进行处理，使得其速度得到很大程度的优化：
 
-```
+```C
 260 int
 261 fork(void)
 262 {
@@ -129,7 +129,7 @@
 ...
 ```
 
-```
+```C
 136 static void
 137 freeproc(struct proc *p)
 138 {
