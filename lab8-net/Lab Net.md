@@ -10,7 +10,7 @@
 
 接受描述符的数据结构如下所示：
 
-```
+```C
 116 struct rx_desc
 117 { 
 118   uint64 addr;       /* Address of the descriptor's data buffer */
@@ -34,7 +34,7 @@
 
 传输描述符的数据结构如下所示：
 
-```
+```C
 100 struct tx_desc
 101 {
 102   uint64 addr;
@@ -57,7 +57,7 @@
 
 在这里，接受和传输描述符所指向的内存段被构造成了 `mbuf` 缓冲区数据结构以方便被其他函数操作，且驱动程序为接受和传输描述符环各分配了一个存放 `mbuf` 缓冲区指针的数组：
 
-```
+```C
  11 #define TX_RING_SIZE 16
  12 static struct tx_desc tx_ring[TX_RING_SIZE] __attribute__((aligned(16)));
  13 static struct mbuf *tx_mbufs[TX_RING_SIZE];
@@ -71,7 +71,7 @@
 
 在本实验中，驱动程序的初始化及一些支撑数据结构已经被编写完成，在这里只需填充用于接受和传输数据包的主要驱动程序函数即可。其中，用于传输数据包的函数为 `int e1000_transmit(struct mbuf *m)` ，其由驱动程序主动调用来传输数据包，其实现如下：
 
-```
+```C
  97 int
  98 e1000_transmit(struct mbuf *m)
  99 {
@@ -107,7 +107,7 @@
 
 用于接受数据的函数为 `static void e1000_recv(void)`。当操作系统接受到数据包时，其将产生设备中断并在 `devintr` 中调用 `e1000_intr` ，该函数调用 `e1000_recv` 完成对数据包的具体接受工作，其实现如下：
 
-```
+```C
 123 static void
 124 e1000_recv(void)
 125 {
